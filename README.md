@@ -1,8 +1,8 @@
-# NomadView 🗺️
+# Immerse Mongolia 🗺️
 
 **Монголын бизнес нээлтийн тэргүүлэх платформ**
 
-NomadView is a full-stack, production-ready business discovery platform for Mongolia — combining interactive Mapbox maps, 360° virtual tours, real-time reviews, and a complete business management ecosystem.
+Immerse Mongolia is a full-stack, production-ready business discovery platform for Mongolia — combining interactive Mapbox maps, 360° virtual tours, real-time reviews, and a complete business management ecosystem.
 
 ---
 
@@ -49,8 +49,8 @@ NomadView is a full-stack, production-ready business discovery platform for Mong
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/yourorg/nomadview.git
-cd nomadview
+git clone https://github.com/tuguldur0525/immersemongolia.git
+cd immersemongolia
 npm install
 ```
 
@@ -83,7 +83,7 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-nomadview/
+immersemongolia/
 ├── prisma/
 │   └── schema.prisma          # Full database schema
 ├── public/
@@ -283,4 +283,4 @@ CMD ["npm", "start"]
 
 ## 📄 License
 
-MIT License — © 2025 NomadView LLC, Mongolia
+MIT License — © 2025 Immerse Mongolia LLC, Mongolia

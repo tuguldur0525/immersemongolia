@@ -1,0 +1,299 @@
+/* src/styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design Tokens ─────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Brand */
+    --brand-primary: 216 88% 52%;       /* royal sky blue */
+    --brand-secondary: 178 74% 38%;     /* crystal teal */
+    --brand-accent: 35 92% 50%;         /* Gobi amber */
+    --brand-accent-dark: 32 90% 34%;
+    --brand-success: 150 70% 34%;       /* emerald green */
+    --brand-warning: 38 92% 50%;
+    --brand-danger: 358 85% 52%;
+
+    /* Background */
+    --background: 216 32% 98%;
+    --background-secondary: 216 34% 95%;
+    --background-tertiary: 214 28% 90%;
+    --background-elevated: 0 0% 100%;
+
+    /* Text */
+    --foreground: 222 42% 9%;
+    --foreground-secondary: 220 20% 32%;
+    --foreground-muted: 220 14% 46%;
+    --foreground-subtle: 220 12% 66%;
+
+    /* Border */
+    --border: 216 24% 86%;
+    --border-strong: 216 18% 76%;
+    --border-input: 216 20% 80%;
+
+    /* Card */
+    --card: 0 0% 100%;
+    --card-foreground: 220 28% 10%;
+
+    /* UI */
+    --radius: 0.85rem;
+    --radius-sm: 0.6rem;
+    --radius-lg: 1.15rem;
+    --radius-xl: 1.4rem;
+    --radius-2xl: 1.75rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px 0 hsl(220 50% 20% / 0.06), 0 1px 2px -1px hsl(220 50% 20% / 0.04);
+    --shadow-md: 0 8px 24px -10px hsl(220 50% 24% / 0.16), 0 3px 10px -6px hsl(220 50% 24% / 0.12);
+    --shadow-lg: 0 18px 44px -18px hsl(220 48% 22% / 0.22), 0 6px 16px -8px hsl(220 48% 22% / 0.12);
+    --shadow-xl: 0 34px 90px -32px hsl(220 52% 18% / 0.34), 0 16px 32px -20px hsl(220 52% 18% / 0.18);
+    --shadow-glow-brand: 0 18px 46px -24px hsl(var(--brand-primary) / 0.55);
+
+    /* Toast */
+    --toast-bg: #ffffff;
+    --toast-color: #121418;
+    --toast-border: #e2e5ec;
+  }
+
+  .dark {
+    --background: 222 24% 6%;
+    --background-secondary: 222 20% 9%;
+    --background-tertiary: 222 18% 12%;
+    --background-elevated: 222 22% 10%;
+
+    --foreground: 210 20% 96%;
+    --foreground-secondary: 210 14% 75%;
+    --foreground-muted: 210 10% 55%;
+    --foreground-subtle: 210 8% 38%;
+
+    --border: 222 16% 16%;
+    --border-strong: 222 12% 22%;
+    --border-input: 222 14% 20%;
+
+    --card: 222 22% 9%;
+    --card-foreground: 210 20% 96%;
+
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+    --shadow-md: 0 4px 16px -2px rgb(0 0 0 / 0.35);
+    --shadow-lg: 0 16px 36px -4px rgb(0 0 0 / 0.45);
+    --shadow-xl: 0 28px 72px -8px rgb(0 0 0 / 0.55);
+
+    --toast-bg: #0f1115;
+    --toast-color: #eef1f6;
+    --toast-border: #1f232c;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'kern' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus visible */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection */
+  ::selection {
+    background: hsl(var(--brand-primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--foreground-muted)); }
+}
+
+/* ── Components ──────────────────────────────────────────────────────────── */
+@layer components {
+  /* Glassmorphism card */
+  .glass-card {
+    background: hsl(var(--card) / 0.92);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid hsl(var(--border) / 0.82);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .glass-card-dark {
+    background: hsl(225 15% 8% / 0.85);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid hsl(225 15% 20% / 0.8);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--brand-primary)), hsl(var(--brand-secondary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Brand button */
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200;
+    background: hsl(var(--brand-primary));
+    color: white;
+    box-shadow: var(--shadow-sm), 0 0 0 0 hsl(var(--brand-primary) / 0);
+  }
+  .btn-brand:hover {
+    filter: brightness(1.1);
+    box-shadow: var(--shadow-md), var(--shadow-glow-brand);
+    transform: translateY(-1px);
+  }
+  .btn-brand:active { transform: translateY(0); }
+
+  /* Category pill */
+  .category-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card));
+  }
+  .category-pill:hover {
+    border-color: hsl(var(--brand-primary));
+    color: hsl(var(--brand-primary));
+    background: hsl(var(--brand-primary) / 0.06);
+  }
+  .category-pill.active {
+    border-color: hsl(var(--brand-primary));
+    color: hsl(var(--brand-primary));
+    background: hsl(var(--brand-primary) / 0.1);
+  }
+
+  /* Business card */
+  .business-card {
+    @apply rounded-2xl overflow-hidden cursor-pointer transition-all duration-300;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-sm);
+  }
+  .business-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+    border-color: hsl(var(--border-strong));
+  }
+
+  /* Map popup */
+  .mapboxgl-popup-content {
+    @apply p-0 rounded-2xl overflow-hidden;
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-xl);
+    background: hsl(var(--card));
+  }
+  .mapboxgl-popup-tip { display: none; }
+
+  /* Verified badge */
+  .verified-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    background: hsl(var(--brand-success) / 0.12);
+    color: hsl(var(--brand-success));
+    border: 1px solid hsl(var(--brand-success) / 0.3);
+  }
+
+  /* Featured badge */
+  .featured-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    background: hsl(var(--brand-accent) / 0.15);
+    color: hsl(35 95% 40%);
+    border: 1px solid hsl(var(--brand-accent) / 0.3);
+  }
+
+  /* Star rating */
+  .star-rating {
+    @apply inline-flex items-center gap-0.5;
+    color: hsl(var(--brand-accent));
+  }
+
+  /* Section container */
+  .section-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  /* Gradient backgrounds */
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, hsl(var(--brand-primary)), hsl(var(--brand-secondary)));
+  }
+  .bg-hero-gradient {
+    background:
+      linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background-secondary)) 48%, hsl(var(--brand-secondary) / 0.14) 100%),
+      linear-gradient(90deg, hsl(var(--brand-primary) / 0.08), transparent 42%, hsl(var(--brand-accent) / 0.08));
+  }
+
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  /* Animation utilities */
+  .animate-in { animation: animate-in 0.4s ease both; }
+  .fade-in { animation: fade-in 0.5s ease both; }
+  .slide-up { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  /* Line clamp */
+  .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+  .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+}
+
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
+@keyframes animate-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to { background-position: 200% center; }
+}
+
+/* ── Mapbox overrides ─────────────────────────────────────────────────────── */
+.mapboxgl-ctrl-logo { display: none !important; }
+.mapboxgl-ctrl-attrib { display: none !important; }
+.mapboxgl-canvas { border-radius: inherit; }
+
+/* ── PWA & Mobile ────────────────────────────────────────────────────────── */
+@media (display-mode: standalone) {
+  body { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Bottom nav safe area for mobile */
+.bottom-nav-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}

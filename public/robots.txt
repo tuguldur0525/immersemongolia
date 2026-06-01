@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and dashboard routes from indexing
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /api/
+
+# Allow important routes
+Allow: /business/
+Allow: /map
+Allow: /pricing
+Allow: /public/
+
+Sitemap: https://immersemongolia.mn/sitemap.xml
