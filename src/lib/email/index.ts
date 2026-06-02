@@ -1,10 +1,21 @@
 import { Resend } from 'resend'
 import { WelcomeEmail } from './templates/WelcomeEmail'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.EMAIL_FROM || 'Immerse Mongolia <noreply@immersemongolia.mn>'
 
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY
+
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is missing')
+  }
+
+  return new Resend(apiKey)
+}
+
 export async function sendWelcomeEmail(to: string, firstName: string) {
+  const resend = getResend()
+
   return resend.emails.send({
     from: FROM,
     to,
@@ -18,6 +29,8 @@ export async function sendBusinessApprovedEmail(
   businessName: string,
   businessSlug: string
 ) {
+  const resend = getResend()
+
   return resend.emails.send({
     from: FROM,
     to,
@@ -36,6 +49,8 @@ export async function sendPaymentConfirmationEmail(
   to: string,
   params: { invoiceNumber: string; amount: number; plan: string; period: string }
 ) {
+  const resend = getResend()
+
   return resend.emails.send({
     from: FROM,
     to,
@@ -55,7 +70,10 @@ export async function sendClaimStatusEmail(
   status: 'APPROVED' | 'REJECTED',
   reason?: string
 ) {
+  const resend = getResend()
+
   const isApproved = status === 'APPROVED'
+
   return resend.emails.send({
     from: FROM,
     to,
