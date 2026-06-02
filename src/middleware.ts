@@ -61,13 +61,15 @@ export async function middleware(request: NextRequest) {
   const isBusinessRoute = BUSINESS_PATTERNS.some((p) => p.test(pathname))
 
   if (isAdminRoute || isBusinessRoute) {
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('role')
-      .eq('supabase_id', user.id)
-      .single()
-
-    const role = dbUser?.role
+    const profileUrl = new URL('/api/users', request.url)
+    const profileResponse = await fetch(profileUrl, {
+      headers: {
+        cookie: request.headers.get('cookie') ?? '',
+      },
+      cache: 'no-store',
+    })
+    const profilePayload = profileResponse.ok ? await profileResponse.json() : null
+    const role = profilePayload?.data?.role
 
     if (isAdminRoute && !['ADMIN', 'SUPER_ADMIN'].includes(role || '')) {
       return NextResponse.redirect(new URL('/', request.url))

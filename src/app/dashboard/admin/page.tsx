@@ -182,7 +182,7 @@ export default function AdminDashboardPage() {
                       <button className="size-8 rounded-lg bg-brand-danger/10 text-brand-danger hover:bg-brand-danger/20 flex items-center justify-center transition-colors">
                         <XCircle size={15} />
                       </button>
-                      <Link href={`/dashboard/admin/businesses/${item.id}`}
+                      <Link href={`/dashboard/admin/businesses/${item.id}/edit`}
                         className="size-8 rounded-lg border border-border hover:bg-background-tertiary flex items-center justify-center text-foreground-muted transition-colors">
                         <Eye size={15} />
                       </Link>

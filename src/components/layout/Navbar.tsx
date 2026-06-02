@@ -1,7 +1,7 @@
 'use client'
 // src/components/layout/Navbar.tsx
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Sun, Moon, Globe, Search, User, ChevronDown, MapPin, LogOut, Settings, BarChart2, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import type { User as AppUser } from '@/types'
 
 interface NavbarProps {
   transparent?: boolean
@@ -27,11 +28,11 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [dbUser, setDbUser] = useState<any>(null)
+  const [dbUser, setDbUser] = useState<AppUser | null>(null)
   const [lang, setLang] = useState<'mn' | 'en'>('mn')
   const { theme, setTheme } = useTheme()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -40,18 +41,56 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    let isMounted = true
+
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!isMounted) return
+
       setUser(user)
-      if (user) {
-        supabase
-          .from('users')
-          .select('id, role, displayName, firstName, avatarUrl')
-          .eq('supabase_id', user.id)
-          .single()
-          .then(({ data }) => setDbUser(data))
+      if (!user) {
+        setDbUser(null)
+        return
       }
+
+      const res = await fetch('/api/users', { cache: 'no-store' })
+      if (!isMounted) return
+
+      if (res.ok) {
+        const { data } = await res.json()
+        setDbUser(data)
+      } else {
+        setDbUser(null)
+      }
+    }
+
+    loadProfile()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return
+
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setUser(null)
+        setDbUser(null)
+        return
+      }
+
+      setUser(session.user)
+      fetch('/api/users', { cache: 'no-store' })
+        .then((res) => res.ok ? res.json() : null)
+        .then((payload) => {
+          if (isMounted) setDbUser(payload?.data ?? null)
+        })
+        .catch(() => {
+          if (isMounted) setDbUser(null)
+        })
     })
-  }, [])
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const isScrolledOrSolid = !transparent || scrolled || mobileOpen
 
