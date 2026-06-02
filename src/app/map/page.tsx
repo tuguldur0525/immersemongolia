@@ -274,6 +274,7 @@ export default function MapPage() {
         {/* Map */}
         <div className="flex-1">
           <MapView
+            searchQuery={searchQuery}
             filters={{
               categorySlug: filters.categorySlug || undefined,
               minRating: filters.minRating || undefined,

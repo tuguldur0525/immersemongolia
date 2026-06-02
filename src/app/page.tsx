@@ -98,9 +98,21 @@ const heroPins = [
 export default function HomePage() {
   const { data: platformStats } = usePlatformStats();
   const heroStats = [
-    { label: "Бизнес", value: formatInteger(platformStats?.totalBusinesses ?? 0), icon: Building2 },
-    { label: "Үнэлгээ", value: formatInteger(platformStats?.totalReviews ?? 0), icon: Star },
-    { label: "Хэрэглэгч", value: formatInteger(platformStats?.totalUsers ?? 0), icon: Users },
+    {
+      label: "Бизнес",
+      value: formatInteger(platformStats?.totalBusinesses ?? 0),
+      icon: Building2,
+    },
+    {
+      label: "Үнэлгээ",
+      value: formatInteger(platformStats?.totalReviews ?? 0),
+      icon: Star,
+    },
+    {
+      label: "Хэрэглэгч",
+      value: formatInteger(platformStats?.totalUsers ?? 0),
+      icon: Users,
+    },
   ];
   const featuredCount = platformStats?.featuredBusinesses ?? 0;
   const activeBusinessCount = platformStats?.totalBusinesses ?? 0;
@@ -136,7 +148,9 @@ export default function HomePage() {
                   className="mb-5 max-w-3xl text-4xl font-black leading-[1.04] tracking-normal text-foreground text-balance sm:text-5xl lg:text-6xl"
                 >
                   Монголын хамгийн
-                  <span className="gradient-text block">шилдэг газруудыг</span>
+                  <span className="gradient-text block py-3">
+                    шилдэг газруудыг
+                  </span>
                   нээж илрүүл
                 </motion.h1>
 
@@ -147,11 +161,9 @@ export default function HomePage() {
                   Ресторан, зочид буудал, амралтын газар, дэлгүүрийг нэг дороос
                   хайж, үнэлгээ болон газрын зурагтай нь харьцуул.
                 </motion.p>
-
                 <motion.div variants={fadeUp} className="max-w-4xl">
                   <HeroSearchBar />
                 </motion.div>
-
                 <motion.div
                   variants={fadeUp}
                   className="mt-5 flex flex-wrap gap-2.5"
@@ -167,7 +179,6 @@ export default function HomePage() {
                     </Link>
                   ))}
                 </motion.div>
-
                 <motion.div
                   variants={fadeUp}
                   className="mt-7 hidden max-w-2xl grid-cols-3 gap-2 rounded-2xl border border-border/75 bg-white/66 p-2 shadow-sm backdrop-blur dark:bg-card/66 sm:grid"
@@ -468,8 +479,9 @@ export default function HomePage() {
                 Бизнесээ Immerse Mongolia дээр бүртгүүлэх үү?
               </h2>
               <p className="text-foreground-secondary text-lg mb-10 max-w-2xl mx-auto">
-                {formatInteger(platformStats?.totalUsers ?? 0)} хэрэглэгчид хүрч, бизнесийн дэлгэрэнгүй мэдээллийг
-                харуулж, харилцагчдаа нэмэгдүүлэх боломж.
+                {formatInteger(platformStats?.totalUsers ?? 0)} хэрэглэгчид
+                хүрч, бизнесийн дэлгэрэнгүй мэдээллийг харуулж, харилцагчдаа
+                нэмэгдүүлэх боломж.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link

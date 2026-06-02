@@ -22,6 +22,11 @@ import {
   Search,
   Star,
 } from 'lucide-react'
+import {
+  buildGoogleMapsCoordinateUrl,
+  isGoogleMapsLink,
+  parseGoogleMapsCoordinates,
+} from '@/lib/maps/googleMaps'
 import { cn } from '@/lib/utils'
 
 type BusinessStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED' | 'CLAIMED'
@@ -272,6 +277,9 @@ export default function BusinessEditorForm({
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('')
+  const [googleMapsError, setGoogleMapsError] = useState('')
+  const [isResolvingGoogleMaps, setIsResolvingGoogleMaps] = useState(false)
 
   const {
     register,
@@ -290,6 +298,8 @@ export default function BusinessEditorForm({
   const selectedPrice = watch('priceRange')
   const logoUrl = watch('logoUrl')
   const coverImageUrl = watch('coverImageUrl')
+  const latitude = watch('latitude')
+  const longitude = watch('longitude')
   const flatCategories = useMemo(() => flattenCategories(categories), [categories])
 
   useEffect(() => {
@@ -328,8 +338,14 @@ export default function BusinessEditorForm({
           setBusiness(editableBusiness)
           setTags(defaults.tags ?? [])
           setAmenities(defaults.amenities ?? [])
+          setGoogleMapsUrl(buildGoogleMapsCoordinateUrl(defaults.latitude, defaults.longitude))
+          setGoogleMapsError('')
+          setIsResolvingGoogleMaps(false)
           reset(defaults)
         } else {
+          setGoogleMapsUrl('')
+          setGoogleMapsError('')
+          setIsResolvingGoogleMaps(false)
           reset(emptyDefaults)
         }
       } catch (error) {
@@ -347,6 +363,52 @@ export default function BusinessEditorForm({
       cancelled = true
     }
   }, [businessId, mode, reset])
+
+  useEffect(() => {
+    const value = googleMapsUrl.trim()
+    if (!value || parseGoogleMapsCoordinates(value) || !isGoogleMapsLink(value)) return
+
+    let cancelled = false
+    const timeoutId = window.setTimeout(async () => {
+      setIsResolvingGoogleMaps(true)
+      setGoogleMapsError('')
+
+      try {
+        const res = await fetch('/api/google-maps/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: value }),
+        })
+        const payload = await res.json()
+
+        if (cancelled) return
+
+        if (!res.ok || !payload.success) {
+          throw new Error(readApiError(payload, 'Google Maps линкээс координат олдсонгүй.'))
+        }
+
+        const coordinates = payload.data as { latitude?: number; longitude?: number }
+        if (typeof coordinates.latitude !== 'number' || typeof coordinates.longitude !== 'number') {
+          throw new Error('Google Maps линкээс координат олдсонгүй.')
+        }
+
+        setGoogleMapsError('')
+        setValue('latitude', Number(coordinates.latitude.toFixed(6)), { shouldValidate: true })
+        setValue('longitude', Number(coordinates.longitude.toFixed(6)), { shouldValidate: true })
+      } catch (error) {
+        if (!cancelled) {
+          setGoogleMapsError(error instanceof Error ? error.message : 'Google Maps линк шалгахад алдаа гарлаа.')
+        }
+      } finally {
+        if (!cancelled) setIsResolvingGoogleMaps(false)
+      }
+    }, 500)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [googleMapsUrl, setValue])
 
   function toggleAmenity(name: string) {
     const next = amenities.includes(name)
@@ -374,6 +436,32 @@ export default function BusinessEditorForm({
     const next = tags.filter((item) => item !== tag)
     setTags(next)
     setValue('tags', next, { shouldValidate: true })
+  }
+
+  function handleGoogleMapsUrlChange(value: string) {
+    setGoogleMapsUrl(value)
+    setIsResolvingGoogleMaps(false)
+
+    if (!value.trim()) {
+      setGoogleMapsError('')
+      setValue('latitude', undefined, { shouldValidate: true })
+      setValue('longitude', undefined, { shouldValidate: true })
+      return
+    }
+
+    const coordinates = parseGoogleMapsCoordinates(value)
+    if (!coordinates) {
+      setValue('latitude', undefined, { shouldValidate: true })
+      setValue('longitude', undefined, { shouldValidate: true })
+      setGoogleMapsError(isGoogleMapsLink(value)
+        ? ''
+        : 'Координат олдсонгүй. Google Maps share link, browser address bar дахь full URL эсвэл "47.918,106.917" формат оруулна уу.')
+      return
+    }
+
+    setGoogleMapsError('')
+    setValue('latitude', Number(coordinates.latitude.toFixed(6)), { shouldValidate: true })
+    setValue('longitude', Number(coordinates.longitude.toFixed(6)), { shouldValidate: true })
   }
 
   async function onSubmit(values: BusinessFormValues) {
@@ -617,13 +705,39 @@ export default function BusinessEditorForm({
                 <label className="text-sm font-medium mb-1.5 block">Хаяг</label>
                 <input {...register('addressMn')} className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30" placeholder="Сүхбаатар дүүрэг, 1-р хороо..." />
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Latitude</label>
-                <input {...register('latitude')} inputMode="decimal" className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30" placeholder="47.918" />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Longitude</label>
-                <input {...register('longitude')} inputMode="decimal" className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30" placeholder="106.917" />
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium mb-1.5 block">Google Maps линк</label>
+                <div className="relative">
+                  <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none" />
+                  <input
+                    value={googleMapsUrl}
+                    onChange={(event) => handleGoogleMapsUrlChange(event.target.value)}
+                    className={cn(
+                      'w-full rounded-xl border bg-background-secondary py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30',
+                      googleMapsError ? 'border-brand-danger' : 'border-border'
+                    )}
+                    placeholder="https://www.google.com/maps/place/.../@47.918,106.917,17z"
+                  />
+                </div>
+                <input {...register('latitude')} type="hidden" />
+                <input {...register('longitude')} type="hidden" />
+                {isResolvingGoogleMaps ? (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-foreground-muted">
+                    <Loader2 size={13} className="animate-spin" />
+                    Google Maps линкийг шалгаж байна
+                  </p>
+                ) : googleMapsError ? (
+                  <p className="mt-1.5 text-xs text-brand-danger">{googleMapsError}</p>
+                ) : latitude && longitude ? (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-success">
+                    <CheckCircle size={13} />
+                    Байршил холбогдлоо
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-foreground-muted">
+                    Google Maps дээр газраа сонгоод share link эсвэл browser address bar дахь full URL-ийг оруулна уу.
+                  </p>
+                )}
               </div>
             </div>
           </motion.section>

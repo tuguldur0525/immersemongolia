@@ -8,6 +8,7 @@ const mapQuerySchema = z.object({
   swLng: z.coerce.number(),
   neLat: z.coerce.number(),
   neLng: z.coerce.number(),
+  query: z.string().trim().max(120).optional(),
   categorySlug: z.string().optional(),
   minRating: z.coerce.number().min(1).max(5).optional(),
   priceRange: z.string().optional(),
@@ -32,7 +33,21 @@ export async function GET(request: NextRequest) {
     if (params.isVerified === 'true') where.isVerified = true
     if (params.hasVirtualTour === 'true') where.virtualTourUrl = { not: null }
     if (params.minRating) where.avgRating = { gte: params.minRating }
-    if (params.priceRange) where.priceRange = { in: params.priceRange.split(',') }
+    if (params.priceRange) {
+      where.priceRange = { in: params.priceRange.split(',').filter(Boolean) }
+    }
+    if (params.query) {
+      where.OR = [
+        { nameMn: { contains: params.query, mode: 'insensitive' } },
+        { nameEn: { contains: params.query, mode: 'insensitive' } },
+        { addressMn: { contains: params.query, mode: 'insensitive' } },
+        { addressEn: { contains: params.query, mode: 'insensitive' } },
+        { district: { contains: params.query, mode: 'insensitive' } },
+        { city: { contains: params.query, mode: 'insensitive' } },
+        { category: { nameMn: { contains: params.query, mode: 'insensitive' } } },
+        { category: { nameEn: { contains: params.query, mode: 'insensitive' } } },
+      ]
+    }
 
     const businesses = await prisma.business.findMany({
       where,
@@ -45,6 +60,7 @@ export async function GET(request: NextRequest) {
         longitude: true,
         avgRating: true,
         totalReviews: true,
+        logoUrl: true,
         coverImageUrl: true,
         isVerified: true,
         isFeatured: true,
@@ -74,6 +90,7 @@ export async function GET(request: NextRequest) {
             nameEn: b.nameEn,
             avgRating: Number(b.avgRating),
             totalReviews: b.totalReviews,
+            logoUrl: b.logoUrl,
             coverImageUrl: b.coverImageUrl,
             isVerified: b.isVerified,
             isFeatured: b.isFeatured,

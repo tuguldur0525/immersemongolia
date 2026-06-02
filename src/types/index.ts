@@ -166,6 +166,7 @@ export interface MapBusiness {
   categoryColor: string | null
   avgRating: number
   totalReviews: number
+  logoUrl: string | null
   coverImageUrl: string | null
   isVerified: boolean
   isFeatured: boolean
