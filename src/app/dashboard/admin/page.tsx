@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Users, Building2, CreditCard, Star, Shield, TrendingUp,
   AlertTriangle, CheckCircle, Clock, XCircle, Eye, BarChart2,
@@ -56,6 +56,8 @@ type AdminDashboardData = {
 
 export default function AdminDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const queryClient = useQueryClient()
   const { data } = useQuery<AdminDashboardData>({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
@@ -79,6 +81,57 @@ export default function AdminDashboardPage() {
   const averageMrr = dashboardStats?.activeSubscriptions
     ? (dashboardStats.monthlyRevenueMnt / dashboardStats.activeSubscriptions)
     : 0
+
+  async function updateBusiness(id: string, payload: Record<string, unknown>) {
+    setActionError('')
+    const res = await fetch(`/api/businesses/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const responsePayload = await res.json().catch(() => null)
+
+    if (!res.ok || !responsePayload?.success) {
+      setActionError(responsePayload?.error || 'Бизнесийн төлөв шинэчлэхэд алдаа гарлаа')
+      return
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+  }
+
+  async function deleteBusiness(id: string) {
+    if (!window.confirm('Энэ бизнесийг устгах уу?')) return
+
+    setActionError('')
+    const res = await fetch(`/api/businesses/${id}`, { method: 'DELETE' })
+    const responsePayload = await res.json().catch(() => null)
+
+    if (!res.ok || !responsePayload?.success) {
+      setActionError(responsePayload?.error || 'Бизнес устгахад алдаа гарлаа')
+      return
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+  }
+
+  async function moderateReview(id: string, action: 'approve' | 'delete') {
+    if (action === 'delete' && !window.confirm('Энэ санал хүсэлтийг устгах уу?')) return
+
+    setActionError('')
+    const res = await fetch(`/api/admin/reviews/${id}`, {
+      method: action === 'approve' ? 'PATCH' : 'DELETE',
+      headers: action === 'approve' ? { 'Content-Type': 'application/json' } : undefined,
+      body: action === 'approve' ? JSON.stringify({ action: 'approve' }) : undefined,
+    })
+    const responsePayload = await res.json().catch(() => null)
+
+    if (!res.ok || !responsePayload?.success) {
+      setActionError(responsePayload?.error || 'Санал хүсэлт шинэчлэхэд алдаа гарлаа')
+      return
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+  }
 
   return (
     <div className="min-h-screen bg-background-secondary flex">
@@ -138,6 +191,12 @@ export default function AdminDashboardPage() {
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          {actionError && (
+            <div className="mb-4 rounded-xl border border-brand-danger/30 bg-brand-danger/8 px-4 py-3 text-sm text-brand-danger">
+              {actionError}
+            </div>
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {stats.map((stat, i) => (
@@ -176,10 +235,16 @@ export default function AdminDashboardPage() {
                       <p className="text-xs text-foreground-muted">{item.category} • {item.owner} • {formatRelativeTime(item.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button className="size-8 rounded-lg bg-brand-success/10 text-brand-success hover:bg-brand-success/20 flex items-center justify-center transition-colors">
+                      <button
+                        onClick={() => updateBusiness(item.id, { status: 'ACTIVE', isVerified: true })}
+                        className="size-8 rounded-lg bg-brand-success/10 text-brand-success hover:bg-brand-success/20 flex items-center justify-center transition-colors"
+                      >
                         <CheckCircle size={15} />
                       </button>
-                      <button className="size-8 rounded-lg bg-brand-danger/10 text-brand-danger hover:bg-brand-danger/20 flex items-center justify-center transition-colors">
+                      <button
+                        onClick={() => deleteBusiness(item.id)}
+                        className="size-8 rounded-lg bg-brand-danger/10 text-brand-danger hover:bg-brand-danger/20 flex items-center justify-center transition-colors"
+                      >
                         <XCircle size={15} />
                       </button>
                       <Link href={`/dashboard/admin/businesses/${item.id}/edit`}
@@ -222,10 +287,16 @@ export default function AdminDashboardPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button className="size-8 rounded-lg bg-brand-success/10 text-brand-success flex items-center justify-center">
+                      <button
+                        onClick={() => moderateReview(item.id, 'approve')}
+                        className="size-8 rounded-lg bg-brand-success/10 text-brand-success flex items-center justify-center hover:bg-brand-success/20 transition-colors"
+                      >
                         <CheckCircle size={15} />
                       </button>
-                      <button className="size-8 rounded-lg bg-brand-danger/10 text-brand-danger flex items-center justify-center">
+                      <button
+                        onClick={() => moderateReview(item.id, 'delete')}
+                        className="size-8 rounded-lg bg-brand-danger/10 text-brand-danger flex items-center justify-center hover:bg-brand-danger/20 transition-colors"
+                      >
                         <XCircle size={15} />
                       </button>
                     </div>

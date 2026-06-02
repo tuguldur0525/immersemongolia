@@ -69,6 +69,8 @@ const businessPayloadSchema = z.object({
   twitter: optionalUrl,
   youtube: optionalUrl,
   tiktok: optionalUrl,
+  logoUrl: optionalUrl,
+  coverImageUrl: optionalUrl,
   virtualTourUrl: optionalUrl,
   virtualTourType: optionalString(40),
   status: z.enum(businessStatuses).optional(),

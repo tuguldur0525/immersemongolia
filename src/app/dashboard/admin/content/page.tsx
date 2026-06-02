@@ -3,16 +3,32 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Star, Flag, CheckCircle, XCircle, Eye, AlertTriangle, MessageSquare, Image as ImageIcon } from 'lucide-react'
 import { cn, formatRelativeTime } from '@/lib/utils'
 
 type ReviewStatus = 'PENDING_MODERATION' | 'FLAGGED'
 
-const MOCK_REVIEWS = [
-  { id: '1', businessName: 'Монголын Элч', businessSlug: 'mongolian-ambassador', user: 'А. Мөнхзул', rating: 1, title: 'Аймшигтай', body: 'Хоол маш муу байсан. Хэзээ ч очихгүй.', status: 'FLAGGED' as ReviewStatus, reason: 'Зохисгүй агуулга', reportCount: 3, createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), hasImages: false },
-  { id: '2', businessName: 'Sky Fitness', businessSlug: 'sky-fitness', user: 'Б. Эрдэнэ', rating: 5, title: 'Гайхалтай газар', body: 'Маш сайхан байна, зөвлөж байна!', status: 'PENDING_MODERATION' as ReviewStatus, reason: '', reportCount: 0, createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), hasImages: true },
-  { id: '3', businessName: 'Nature Camp', businessSlug: 'nature-camp', user: 'Г. Нандин', rating: 2, title: null, body: 'Спамтай мэт санагдсан. Баталгаагүй мэдээлэл.', status: 'FLAGGED' as ReviewStatus, reason: 'Хуурамч санал', reportCount: 5, createdAt: new Date(Date.now() - 86400000).toISOString(), hasImages: false },
-]
+type AdminReview = {
+  id: string
+  businessName: string
+  businessSlug: string
+  user: string
+  rating: number
+  title: string | null
+  body: string | null
+  status: ReviewStatus
+  reason: string
+  reportCount: number
+  createdAt: string
+  hasImages: boolean
+}
+
+type AdminReviewsData = {
+  reviews: AdminReview[]
+  total: number
+  statusCounts: Record<string, number>
+}
 
 const STATUS_CONFIG = {
   PENDING_MODERATION: { label: 'Хянагдаж байна', color: 'text-brand-warning', bg: 'bg-brand-warning/10', icon: AlertTriangle },
@@ -20,14 +36,48 @@ const STATUS_CONFIG = {
 }
 
 export default function AdminContentPage() {
-  const [reviews, setReviews] = useState(MOCK_REVIEWS)
   const [filter, setFilter] = useState<'ALL' | ReviewStatus>('ALL')
+  const [actionError, setActionError] = useState('')
+  const queryClient = useQueryClient()
 
-  const filtered = filter === 'ALL' ? reviews : reviews.filter(r => r.status === filter)
+  const { data, isLoading, error } = useQuery<AdminReviewsData>({
+    queryKey: ['admin-reviews', filter],
+    queryFn: async () => {
+      const params = new URLSearchParams({ status: filter, limit: '100' })
+      const res = await fetch(`/api/admin/reviews?${params.toString()}`, { cache: 'no-store' })
+      const payload = await res.json()
 
-  function handleAction(id: string, action: 'approve' | 'reject') {
-    setReviews(prev => prev.filter(r => r.id !== id))
-    // In production: call /api/admin/reviews/:id/moderate
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.error || 'Санал хүсэлтүүдийг ачаалж чадсангүй')
+      }
+
+      return payload.data
+    },
+    staleTime: 20_000,
+  })
+
+  const reviews = data?.reviews ?? []
+  const statusCounts = data?.statusCounts ?? {}
+  const filtered = reviews
+
+  async function handleAction(id: string, action: 'approve' | 'delete') {
+    if (action === 'delete' && !window.confirm('Энэ санал хүсэлтийг устгах уу?')) return
+
+    setActionError('')
+    const res = await fetch(`/api/admin/reviews/${id}`, {
+      method: action === 'approve' ? 'PATCH' : 'DELETE',
+      headers: action === 'approve' ? { 'Content-Type': 'application/json' } : undefined,
+      body: action === 'approve' ? JSON.stringify({ action: 'approve' }) : undefined,
+    })
+    const payload = await res.json().catch(() => null)
+
+    if (!res.ok || !payload?.success) {
+      setActionError(payload?.error || 'Үйлдэл амжилтгүй боллоо')
+      return
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['admin-reviews'] })
+    queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
   }
 
   return (
@@ -41,9 +91,9 @@ export default function AdminContentPage() {
         <div className="flex items-center justify-between">
           <h1 className="font-bold text-lg">Агуулгын хяналт</h1>
           <div className="flex items-center gap-2">
-            {reviews.filter(r => r.status === 'FLAGGED').length > 0 && (
+            {(statusCounts.FLAGGED ?? 0) > 0 && (
               <span className="px-2.5 py-1 rounded-full bg-brand-danger text-white text-xs font-bold">
-                {reviews.filter(r => r.status === 'FLAGGED').length} тэмдэглэгдсэн
+                {statusCounts.FLAGGED ?? 0} тэмдэглэгдсэн
               </span>
             )}
           </div>
@@ -54,9 +104,9 @@ export default function AdminContentPage() {
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-card rounded-xl border border-border p-1 w-fit">
           {[
-            { value: 'ALL', label: `Бүгд (${reviews.length})` },
-            { value: 'PENDING_MODERATION', label: `Хянагдаж байна (${reviews.filter(r => r.status === 'PENDING_MODERATION').length})` },
-            { value: 'FLAGGED', label: `Тэмдэглэгдсэн (${reviews.filter(r => r.status === 'FLAGGED').length})` },
+            { value: 'ALL', label: `Бүгд (${Object.values(statusCounts).reduce((sum, count) => sum + count, 0)})` },
+            { value: 'PENDING_MODERATION', label: `Хянагдаж байна (${statusCounts.PENDING_MODERATION ?? 0})` },
+            { value: 'FLAGGED', label: `Тэмдэглэгдсэн (${statusCounts.FLAGGED ?? 0})` },
           ].map(tab => (
             <button key={tab.value} onClick={() => setFilter(tab.value as typeof filter)}
               className={cn('px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap',
@@ -66,9 +116,20 @@ export default function AdminContentPage() {
           ))}
         </div>
 
+        {actionError && (
+          <div className="mb-4 rounded-xl border border-brand-danger/30 bg-brand-danger/8 px-4 py-3 text-sm text-brand-danger">
+            {actionError}
+          </div>
+        )}
+
         {/* Reviews */}
         <div className="space-y-4">
-          {filtered.length === 0 ? (
+          {isLoading || error ? (
+            <div className="bg-card rounded-2xl border border-border py-20 text-center">
+              <MessageSquare size={36} className="text-foreground-subtle mx-auto mb-3" />
+              <p className="font-medium">{isLoading ? 'Ачаалж байна...' : 'Санал хүсэлтүүдийг ачаалж чадсангүй'}</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="bg-card rounded-2xl border border-border py-20 text-center">
               <CheckCircle size={36} className="text-brand-success mx-auto mb-3" />
               <p className="font-medium text-brand-success">Бүх санал хүсэлт шалгагдсан байна!</p>
@@ -142,7 +203,7 @@ export default function AdminContentPage() {
                         <CheckCircle size={15} />
                         Зөвшөөрөх
                       </button>
-                      <button onClick={() => handleAction(review.id, 'reject')}
+                      <button onClick={() => handleAction(review.id, 'delete')}
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-danger text-white text-sm font-semibold hover:brightness-110 transition-all">
                         <XCircle size={15} />
                         Устгах

@@ -54,6 +54,7 @@ export default function ReviewSection({
   const [sortBy, setSortBy] = useState('newest')
   const [hoverRating, setHoverRating] = useState(0)
   const [selectedRating, setSelectedRating] = useState(0)
+  const [submitError, setSubmitError] = useState('')
   const { data: reviewData, isLoading } = useReviews(businessId, sortBy)
   const createReview = useCreateReview()
 
@@ -65,13 +66,14 @@ export default function ReviewSection({
   const ratingLabels = ['', 'Маш муу', 'Муу', 'Дундаж', 'Сайн', 'Маш сайн']
 
   async function onSubmit(data: ReviewFormData) {
+    setSubmitError('')
     try {
       await createReview.mutateAsync({ ...data, businessId })
       reset({ rating: 0 })
       setSelectedRating(0)
       setShowForm(false)
     } catch (err) {
-      console.error(err)
+      setSubmitError(err instanceof Error ? err.message : 'Санал хадгалахад алдаа гарлаа.')
     }
   }
 
@@ -142,6 +144,12 @@ export default function ReviewSection({
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                {submitError && (
+                  <div className="rounded-xl border border-brand-danger/30 bg-brand-danger/8 px-4 py-3 text-sm text-brand-danger">
+                    {submitError}
+                  </div>
+                )}
+
                 {/* Star Rating */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">Үнэлгээ *</label>

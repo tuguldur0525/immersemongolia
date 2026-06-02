@@ -14,6 +14,7 @@ import {
   Building2,
   CheckCircle,
   Globe,
+  Image as ImageIcon,
   Loader2,
   MapPin,
   Phone,
@@ -70,6 +71,8 @@ type EditableBusiness = {
   priceRange: '$' | '$$' | '$$$' | '$$$$' | null
   tags: string[]
   amenities: string[]
+  logoUrl: string | null
+  coverImageUrl: string | null
   virtualTourUrl: string | null
   virtualTourType: string | null
   owner: { email: string; displayName: string | null; firstName: string | null; lastName: string | null } | null
@@ -126,6 +129,8 @@ const businessFormSchema = z.object({
   twitter: optionalUrl,
   youtube: optionalUrl,
   tiktok: optionalUrl,
+  logoUrl: optionalUrl,
+  coverImageUrl: optionalUrl,
   virtualTourUrl: optionalUrl,
   virtualTourType: optionalString(40),
   tags: z.array(z.string()).default([]),
@@ -186,6 +191,8 @@ const emptyDefaults: BusinessFormValues = {
   twitter: undefined,
   youtube: undefined,
   tiktok: undefined,
+  logoUrl: undefined,
+  coverImageUrl: undefined,
   virtualTourUrl: undefined,
   virtualTourType: undefined,
   tags: [],
@@ -235,6 +242,8 @@ function businessToDefaults(business: EditableBusiness): BusinessFormValues {
     twitter: business.twitter ?? undefined,
     youtube: business.youtube ?? undefined,
     tiktok: business.tiktok ?? undefined,
+    logoUrl: business.logoUrl ?? undefined,
+    coverImageUrl: business.coverImageUrl ?? undefined,
     virtualTourUrl: business.virtualTourUrl ?? undefined,
     virtualTourType: business.virtualTourType ?? undefined,
     tags: business.tags ?? [],
@@ -279,6 +288,8 @@ export default function BusinessEditorForm({
   const isAdmin = adminContext || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN'
   const selectedCategory = watch('categoryId')
   const selectedPrice = watch('priceRange')
+  const logoUrl = watch('logoUrl')
+  const coverImageUrl = watch('coverImageUrl')
   const flatCategories = useMemo(() => flattenCategories(categories), [categories])
 
   useEffect(() => {
@@ -621,6 +632,73 @@ export default function BusinessEditorForm({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
+            className="bg-card border border-border rounded-2xl p-5 sm:p-6"
+          >
+            <h2 className="font-semibold mb-5 flex items-center gap-2">
+              <ImageIcon size={18} className="text-brand-primary" />
+              Зураг
+            </h2>
+
+            <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-5">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Нүүр зураг URL</label>
+                  <input
+                    {...register('coverImageUrl')}
+                    type="url"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                    placeholder="https://.../cover.webp"
+                  />
+                  {errors.coverImageUrl && <p className="text-xs text-brand-danger mt-1">{errors.coverImageUrl.message}</p>}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Лого URL</label>
+                  <input
+                    {...register('logoUrl')}
+                    type="url"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                    placeholder="https://.../logo.webp"
+                  />
+                  {errors.logoUrl && <p className="text-xs text-brand-danger mt-1">{errors.logoUrl.message}</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[1fr_96px] gap-3">
+                <div className="relative min-h-[160px] rounded-xl border border-border bg-background-secondary overflow-hidden">
+                  {coverImageUrl ? (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url("${coverImageUrl}")` }}
+                    />
+                  ) : (
+                    <div className="h-full min-h-[160px] flex flex-col items-center justify-center gap-2 text-foreground-muted">
+                      <ImageIcon size={24} />
+                      <span className="text-xs">Нүүр зураг</span>
+                    </div>
+                  )}
+                </div>
+                <div className="relative size-24 rounded-xl border border-border bg-background-secondary overflow-hidden">
+                  {logoUrl ? (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url("${logoUrl}")` }}
+                    />
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center gap-1 text-foreground-muted">
+                      <ImageIcon size={18} />
+                      <span className="text-[11px]">Лого</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
             className="bg-card border border-border rounded-2xl p-5 sm:p-6"
           >
             <h2 className="font-semibold mb-5 flex items-center gap-2">

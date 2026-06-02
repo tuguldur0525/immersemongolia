@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import prisma from '@/lib/supabase/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { ensureUserProfile } from '@/lib/auth/profile'
 
 const createReviewSchema = z.object({
   businessId: z.string().uuid(),
@@ -14,6 +15,32 @@ const createReviewSchema = z.object({
   visitDate: z.string().optional(),
   visitType: z.enum(['solo', 'couple', 'family', 'business', 'friends']).optional(),
 })
+
+async function getRequester(request: NextRequest) {
+  const supabase = await createClient()
+  const {
+    data: { user: cookieUser },
+    error: cookieError,
+  } = await supabase.auth.getUser()
+
+  if (cookieUser && !cookieError) {
+    const { user } = await ensureUserProfile(cookieUser)
+    return user
+  }
+
+  const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]
+  if (!token) return null
+
+  const {
+    data: { user: tokenUser },
+    error: tokenError,
+  } = await supabase.auth.getUser(token)
+
+  if (tokenError || !tokenUser) return null
+
+  const { user } = await ensureUserProfile(tokenUser)
+  return user
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -78,22 +105,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-
-    const dbUser = await prisma.user.findUnique({
-      where: { supabaseId: user.id },
-      select: { id: true },
-    })
-    if (!dbUser) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+    const requester = await getRequester(request)
+    if (!requester) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
     const data = createReviewSchema.parse(body)
 
     // Check if user already reviewed this business
     const existing = await prisma.review.findUnique({
-      where: { businessId_userId: { businessId: data.businessId, userId: dbUser.id } },
+      where: { businessId_userId: { businessId: data.businessId, userId: requester.id } },
     })
     if (existing) {
       return NextResponse.json({ success: false, error: 'You already reviewed this business' }, { status: 409 })
@@ -108,7 +128,7 @@ export async function POST(request: NextRequest) {
     const review = await prisma.review.create({
       data: {
         ...data,
-        userId: dbUser.id,
+        userId: requester.id,
         visitDate: data.visitDate ? new Date(data.visitDate) : undefined,
         status: 'PENDING_MODERATION',
       },

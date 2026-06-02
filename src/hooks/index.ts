@@ -113,17 +113,32 @@ export function useReviews(businessId: string, sortBy = 'newest') {
 
 export function useCreateReview() {
   const queryClient = useQueryClient()
+  const supabase = createClient()
 
   return useMutation({
     mutationFn: async (data: ReviewFormData & { businessId: string }) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`
+      }
+
       const res = await fetch('/api/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(data),
       })
       if (!res.ok) {
         const { error } = await res.json()
-        throw new Error(error || 'Failed to create review')
+        throw new Error(
+          res.status === 401
+            ? 'Санал бичихийн тулд эхлээд нэвтэрнэ үү.'
+            : error || 'Failed to create review'
+        )
       }
       return res.json()
     },
