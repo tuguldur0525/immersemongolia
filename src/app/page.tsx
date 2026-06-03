@@ -30,6 +30,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { usePlatformStats } from "@/hooks";
+import { useLanguage } from "@/lib/i18n/client";
 import { formatInteger } from "@/lib/utils";
 
 const stagger = {
@@ -45,20 +46,20 @@ const fadeUp = {
   },
 };
 
-const heroLinks = [
+const heroLinkConfig = [
   {
-    label: "Ресторан",
+    key: "restaurants",
     href: "/business/search?categorySlug=restaurants",
     icon: Utensils,
   },
   {
-    label: "Зочид буудал",
+    key: "hotels",
     href: "/business/search?categorySlug=hotels",
     icon: Hotel,
   },
-  { label: "Кемп", href: "/business/search?categorySlug=camps", icon: Tent },
+  { key: "camps", href: "/business/search?categorySlug=camps", icon: Tent },
   {
-    label: "Дэлгүүр",
+    key: "shopping",
     href: "/business/search?categorySlug=shopping",
     icon: ShoppingBag,
   },
@@ -66,28 +67,28 @@ const heroLinks = [
 
 const heroPins = [
   {
-    label: "Ресторан",
+    key: "restaurants",
     top: "24%",
     left: "26%",
     icon: Utensils,
     color: "bg-brand-danger",
   },
   {
-    label: "Зочид буудал",
+    key: "hotels",
     top: "38%",
     left: "64%",
     icon: Hotel,
     color: "bg-brand-primary",
   },
   {
-    label: "Кемп",
+    key: "camps",
     top: "62%",
     left: "35%",
     icon: Tent,
     color: "bg-brand-success",
   },
   {
-    label: "Дэлгүүр",
+    key: "shopping",
     top: "55%",
     left: "72%",
     icon: ShoppingBag,
@@ -95,21 +96,120 @@ const heroPins = [
   },
 ];
 
+const HOME_COPY = {
+  mn: {
+    heroTitleTop: "Монголын хамгийн",
+    heroTitleAccent: "шилдэг газруудыг",
+    heroTitleBottom: "нээж илрүүл",
+    heroDescription:
+      "Ресторан, зочид буудал, амралтын газар, дэлгүүрийг нэг дороос хайж, үнэлгээ болон газрын зурагтай нь харьцуул.",
+    stats: {
+      businesses: "Бизнес",
+      reviews: "Үнэлгээ",
+      users: "Хэрэглэгч",
+    },
+    heroPanelTitle: "Улаанбаатар",
+    heroPanelSubtitle: "Газрын зураг дээрх нээлт",
+    heroPanelBadge: "Live",
+    heroPanelCoordinates: "47.9189, 106.9176",
+    heroPanelFeatured: (count: string) => `Өнөөдөр онцлох ${count} газар`,
+    heroPanelTotal: (count: string) => `Нийт ${count} газар`,
+    heroPanelMeta: "Үнэлгээ, зай, ангиллаар эрэмбэлэгдэнэ",
+    heroPanelOpen: "Нээх",
+    categoriesTitle: "Ангилалаар хайх",
+    categoriesSubtitle: "Таны хайж буй зүйлийг олоорой",
+    featuredEyebrow: "Онцлох газрууд",
+    featuredTitle: "Санал болгох газрууд",
+    seeAll: "Бүгдийг харах",
+    mapEyebrow: "Интерактив газрын зураг",
+    mapTitle: "Газрын зургаас шууд нээж илрүүлэх",
+    mapDescription:
+      "Байршил дээрээ тулгуурлан ойролцоо газруудыг олж, нэг товшилтоор дэлгэрэнгүй мэдээллийг авна уу.",
+    mapBullets: [
+      "Ангиллаар шүүх",
+      "Ойрын газруудыг нээх",
+      "Чиглэл авах",
+      "360° виртуал аялал",
+    ],
+    mapCta: "Газрын зурагруу очих",
+    virtualTourTitle: "360° Virtual Tour",
+    virtualTourSubtitle: "Виртуал аялал боломжтой",
+    trendingEyebrow: "Trending",
+    trendingTitle: "Хамгийн их хандалттай",
+    ownerCtaTitle: "Бизнесээ Immerse Mongolia дээр бүртгүүлэх үү?",
+    ownerCtaDescription: (count: string) =>
+      `${count} хэрэглэгчид хүрч, бизнесийн дэлгэрэнгүй мэдээллийг харуулж, харилцагчдаа нэмэгдүүлэх боломж.`,
+    ownerCtaPrimary: "Одоо бүртгүүлэх",
+    ownerCtaSecondary: "Дэлгэрэнгүй мэдэх",
+  },
+  en: {
+    heroTitleTop: "Discover",
+    heroTitleAccent: "Mongolia's best",
+    heroTitleBottom: "places in one view",
+    heroDescription:
+      "Find restaurants, hotels, camps, shops, and local services with ratings, map context, and rich business details.",
+    stats: {
+      businesses: "Businesses",
+      reviews: "Reviews",
+      users: "Users",
+    },
+    heroPanelTitle: "Ulaanbaatar",
+    heroPanelSubtitle: "Live discovery map",
+    heroPanelBadge: "Live",
+    heroPanelCoordinates: "47.9189, 106.9176",
+    heroPanelFeatured: (count: string) => `${count} featured places today`,
+    heroPanelTotal: (count: string) => `${count} places listed`,
+    heroPanelMeta: "Ranked by rating, distance, and category",
+    heroPanelOpen: "Open",
+    categoriesTitle: "Browse by Category",
+    categoriesSubtitle: "Find the place you are looking for",
+    featuredEyebrow: "Featured",
+    featuredTitle: "Recommended Places",
+    seeAll: "See all",
+    mapEyebrow: "Interactive Map",
+    mapTitle: "Explore directly from the map",
+    mapDescription:
+      "Use your location to discover nearby places and open full business details in one tap.",
+    mapBullets: [
+      "Filter by category",
+      "Discover nearby places",
+      "Get directions",
+      "360° virtual tours",
+    ],
+    mapCta: "Open map",
+    virtualTourTitle: "360° Virtual Tour",
+    virtualTourSubtitle: "Available at selected places",
+    trendingEyebrow: "Trending",
+    trendingTitle: "Most Visited",
+    ownerCtaTitle: "List your business on Immerse Mongolia",
+    ownerCtaDescription: (count: string) =>
+      `Reach ${count} users, present richer business details, and grow customer demand.`,
+    ownerCtaPrimary: "Get started",
+    ownerCtaSecondary: "Learn more",
+  },
+} as const;
+
 export default function HomePage() {
+  const { locale, t } = useLanguage();
   const { data: platformStats } = usePlatformStats();
+  const copy = HOME_COPY[locale];
+  const heroLinks = heroLinkConfig.map((item) => ({
+    ...item,
+    label: t(`categories.${item.key}`),
+  }));
   const heroStats = [
     {
-      label: "Бизнес",
+      label: copy.stats.businesses,
       value: formatInteger(platformStats?.totalBusinesses ?? 0),
       icon: Building2,
     },
     {
-      label: "Үнэлгээ",
+      label: copy.stats.reviews,
       value: formatInteger(platformStats?.totalReviews ?? 0),
       icon: Star,
     },
     {
-      label: "Хэрэглэгч",
+      label: copy.stats.users,
       value: formatInteger(platformStats?.totalUsers ?? 0),
       icon: Users,
     },
@@ -123,18 +223,7 @@ export default function HomePage() {
 
       <main>
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden bg-hero-gradient pt-20 sm:pt-28 lg:flex lg:min-h-[660px] lg:items-center lg:pt-24">
-          <div
-            className="absolute inset-0 opacity-[0.08] dark:opacity-[0.04]"
-            style={{
-              backgroundImage:
-                "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
-              backgroundSize: "56px 56px",
-              maskImage:
-                "linear-gradient(to bottom, black 0%, black 68%, transparent 100%)",
-            }}
-          />
-
+        <section className="relative overflow-hidden border-b border-border bg-background pt-20 sm:pt-28 lg:flex lg:min-h-[660px] lg:items-center lg:pt-24">
           <div className="section-container relative z-10 pb-14 lg:pb-16">
             <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(380px,500px)] xl:gap-14">
               <motion.div
@@ -147,19 +236,18 @@ export default function HomePage() {
                   variants={fadeUp}
                   className="mb-5 max-w-3xl text-4xl font-black leading-[1.04] tracking-normal text-foreground text-balance sm:text-5xl lg:text-6xl"
                 >
-                  Монголын хамгийн
+                  {copy.heroTitleTop}
                   <span className="gradient-text block py-2">
-                    шилдэг газруудыг
+                    {copy.heroTitleAccent}
                   </span>
-                  нээж илрүүл
+                  {copy.heroTitleBottom}
                 </motion.h1>
 
                 <motion.p
                   variants={fadeUp}
                   className="mb-6 max-w-2xl text-base font-medium leading-7 text-foreground-secondary sm:mb-7 sm:text-lg sm:leading-8"
                 >
-                  Ресторан, зочид буудал, амралтын газар, дэлгүүрийг нэг дороос
-                  хайж, үнэлгээ болон газрын зурагтай нь харьцуул.
+                  {copy.heroDescription}
                 </motion.p>
                 <motion.div variants={fadeUp} className="max-w-4xl">
                   <HeroSearchBar />
@@ -213,37 +301,32 @@ export default function HomePage() {
                   <div className="flex items-center justify-between px-3 pb-3 pt-1">
                     <div>
                       <p className="text-sm font-black text-foreground">
-                        Улаанбаатар
+                        {copy.heroPanelTitle}
                       </p>
                       <p className="text-xs font-medium text-foreground-muted">
-                        Газрын зураг дээрх нээлт
+                        {copy.heroPanelSubtitle}
                       </p>
                     </div>
                     <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-success/10 px-3 py-1 text-xs font-bold text-brand-success">
                       <ShieldCheck size={13} />
-                      Live
+                      {copy.heroPanelBadge}
                     </div>
                   </div>
 
-                  <div className="relative h-[330px] overflow-hidden rounded-[1.45rem] border border-border/75 bg-[linear-gradient(135deg,hsl(var(--background-secondary)),hsl(var(--brand-primary)/0.10),hsl(var(--brand-secondary)/0.14))]">
-                    <div
-                      className="absolute inset-0 opacity-[0.22]"
-                      style={{
-                        backgroundImage:
-                          "linear-gradient(35deg, transparent 47%, hsl(var(--foreground) / 0.18) 48%, hsl(var(--foreground) / 0.18) 52%, transparent 53%), linear-gradient(125deg, transparent 47%, hsl(var(--foreground) / 0.14) 48%, hsl(var(--foreground) / 0.14) 52%, transparent 53%), linear-gradient(hsl(var(--foreground) / 0.10) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 0.10) 1px, transparent 1px)",
-                        backgroundSize:
-                          "190px 190px, 210px 210px, 42px 42px, 42px 42px",
-                      }}
-                    />
+                  <div className="relative h-[330px] overflow-hidden rounded-[1.45rem] border border-border/75 bg-background-secondary">
+                    <div className="absolute left-[-12%] top-[42%] h-3 w-[125%] rotate-[-12deg] rounded-full bg-border/80" />
+                    <div className="absolute left-[16%] top-[-8%] h-[116%] w-3 rotate-[18deg] rounded-full bg-border/70" />
+                    <div className="absolute left-[38%] top-[10%] h-2.5 w-[78%] rotate-[28deg] rounded-full bg-card/80" />
+                    <div className="absolute left-[-8%] bottom-[20%] h-2.5 w-[72%] rotate-[16deg] rounded-full bg-card/80" />
 
                     <div className="absolute left-5 top-5 flex items-center gap-2 rounded-full border border-white/80 bg-white/86 px-3 py-2 text-xs font-bold text-foreground shadow-sm backdrop-blur">
                       <Navigation size={14} className="text-brand-primary" />
-                      47.9189, 106.9176
+                      {copy.heroPanelCoordinates}
                     </div>
 
-                    {heroPins.map(({ label, top, left, icon: Icon, color }) => (
+                    {heroPins.map(({ key, top, left, icon: Icon, color }) => (
                       <div
-                        key={label}
+                        key={key}
                         className="absolute -translate-x-1/2 -translate-y-1/2"
                         style={{ top, left }}
                       >
@@ -253,7 +336,7 @@ export default function HomePage() {
                           <Icon size={17} />
                         </div>
                         <div className="mt-1 rounded-full border border-white/80 bg-white/90 px-2 py-0.5 text-[11px] font-bold text-foreground shadow-sm backdrop-blur">
-                          {label}
+                          {t(`categories.${key}`)}
                         </div>
                       </div>
                     ))}
@@ -266,18 +349,22 @@ export default function HomePage() {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-black text-foreground">
                             {featuredCount > 0
-                              ? `Өнөөдөр онцлох ${formatInteger(featuredCount)} газар`
-                              : `Нийт ${formatInteger(activeBusinessCount)} газар`}
+                              ? copy.heroPanelFeatured(
+                                  formatInteger(featuredCount),
+                                )
+                              : copy.heroPanelTotal(
+                                  formatInteger(activeBusinessCount),
+                                )}
                           </p>
                           <p className="text-xs font-medium text-foreground-muted">
-                            Үнэлгээ, зай, ангиллаар эрэмбэлэгдэнэ
+                            {copy.heroPanelMeta}
                           </p>
                         </div>
                         <Link
                           href="/map"
                           className="rounded-xl bg-foreground px-3 py-2 text-xs font-bold text-background transition-colors hover:bg-brand-primary"
                         >
-                          Нээх
+                          {copy.heroPanelOpen}
                         </Link>
                       </div>
                     </div>
@@ -299,10 +386,10 @@ export default function HomePage() {
               className="text-center mb-12"
             >
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Ангилалаар хайх
+                {copy.categoriesTitle}
               </h2>
               <p className="text-foreground-secondary text-lg">
-                Таны хайж буй зүйлийг олоорой
+                {copy.categoriesSubtitle}
               </p>
             </motion.div>
             <Suspense
@@ -332,17 +419,17 @@ export default function HomePage() {
                 viewport={{ once: true }}
               >
                 <span className="text-brand-primary font-medium text-sm mb-2 block">
-                  Онцлох газрууд
+                  {copy.featuredEyebrow}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-bold">
-                  Санал болгох газрууд
+                  {copy.featuredTitle}
                 </h2>
               </motion.div>
               <Link
                 href="/business/search?featured=true"
                 className="hidden sm:flex items-center gap-1 text-brand-primary hover:underline text-sm font-medium"
               >
-                Бүгдийг харах <ChevronRight size={16} />
+                {copy.seeAll} <ChevronRight size={16} />
               </Link>
             </div>
             <Suspense fallback={<FeaturedSkeleton />}>
@@ -363,22 +450,16 @@ export default function HomePage() {
               >
                 <span className="text-brand-primary font-medium text-sm mb-3 block flex items-center gap-2">
                   <MapPin size={16} />
-                  Интерактив газрын зураг
+                  {copy.mapEyebrow}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-balance">
-                  Газрын зургаас шууд нээж илрүүлэх
+                  {copy.mapTitle}
                 </h2>
                 <p className="text-foreground-secondary text-lg leading-relaxed mb-8">
-                  Байршил дээрээ тулгуурлан ойролцоо газруудыг олж, нэг
-                  товшилтоор дэлгэрэнгүй мэдээллийг авна уу.
+                  {copy.mapDescription}
                 </p>
                 <ul className="space-y-3 mb-8">
-                  {[
-                    "Ангиллаар шүүх",
-                    "Ойрын газруудыг нээх",
-                    "Чиглэл авах",
-                    "360° виртуал аялал",
-                  ].map((item) => (
+                  {copy.mapBullets.map((item) => (
                     <li
                       key={item}
                       className="flex items-center gap-3 text-foreground-secondary"
@@ -405,7 +486,7 @@ export default function HomePage() {
                 </ul>
                 <Link href="/map" className="btn-brand">
                   <MapPin size={18} />
-                  Газрын зурагруу очих
+                  {copy.mapCta}
                 </Link>
               </motion.div>
 
@@ -425,9 +506,11 @@ export default function HomePage() {
                     <Globe size={20} className="text-brand-accent" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">360° Virtual Tour</p>
+                    <p className="font-semibold text-sm">
+                      {copy.virtualTourTitle}
+                    </p>
                     <p className="text-xs text-foreground-muted">
-                      Виртуал аялал боломжтой
+                      {copy.virtualTourSubtitle}
                     </p>
                   </div>
                 </div>
@@ -450,10 +533,10 @@ export default function HomePage() {
             >
               <span className="text-brand-primary font-medium text-sm mb-2 block flex items-center justify-center gap-2">
                 <TrendingUp size={16} />
-                Trending
+                {copy.trendingEyebrow}
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold">
-                Хамгийн их хандалттай
+                {copy.trendingTitle}
               </h2>
             </motion.div>
             <Suspense fallback={<FeaturedSkeleton />}>
@@ -476,25 +559,25 @@ export default function HomePage() {
               transition={{ duration: 0.7 }}
             >
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-balance">
-                Бизнесээ Immerse Mongolia дээр бүртгүүлэх үү?
+                {copy.ownerCtaTitle}
               </h2>
               <p className="text-foreground-secondary text-lg mb-10 max-w-2xl mx-auto">
-                {formatInteger(platformStats?.totalUsers ?? 0)} хэрэглэгчид
-                хүрч, бизнесийн дэлгэрэнгүй мэдээллийг харуулж, харилцагчдаа
-                нэмэгдүүлэх боломж.
+                {copy.ownerCtaDescription(
+                  formatInteger(platformStats?.totalUsers ?? 0),
+                )}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/pricing"
                   className="btn-brand px-8 py-3.5 text-base"
                 >
-                  Одоо бүртгүүлэх
+                  {copy.ownerCtaPrimary}
                 </Link>
                 <Link
-                  href="/about"
+                  href="/public/about"
                   className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-medium text-sm border border-border hover:border-brand-primary hover:text-brand-primary transition-colors"
                 >
-                  Дэлгэрэнгүй мэдэх
+                  {copy.ownerCtaSecondary}
                 </Link>
               </div>
             </motion.div>

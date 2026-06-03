@@ -136,7 +136,7 @@ function SearchPageContent() {
             <div className="flex items-center gap-3">
               <p className="text-sm text-foreground-secondary">
                 <span className="font-semibold text-foreground">{total}</span> үр дүн
-                {query && <span> — "<span className="text-brand-primary">{query}</span>"</span>}
+                {query && <span> — &ldquo;<span className="text-brand-primary">{query}</span>&rdquo;</span>}
               </p>
 
               {/* Active filter tags */}

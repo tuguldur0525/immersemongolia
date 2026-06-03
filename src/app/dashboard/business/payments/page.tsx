@@ -69,6 +69,23 @@ type PaymentData = {
   total: number
 }
 
+type PaymentResult = {
+  payment: {
+    amount: number | string
+    invoiceNumber: string | null
+  }
+  qpay?: {
+    qrCode?: string | null
+    urls?: Array<{ name: string; link: string }>
+  } | null
+  bankDetails?: {
+    bankName: string
+    accountName: string
+    accountNumber?: string | null
+    reference: string
+  } | null
+}
+
 type PlanConfig = {
   plan: SubscriptionPlan
   nameMn: string
@@ -157,7 +174,7 @@ export default function BusinessPaymentsPage() {
   const [method, setMethod] = useState<PaymentMethod>('QPAY')
   const [isAnnual, setIsAnnual] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
-  const [paymentResult, setPaymentResult] = useState<any>(null)
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const queryClient = useQueryClient()
 
@@ -459,9 +476,9 @@ export default function BusinessPaymentsPage() {
                     <div className="space-y-3">
                       <p className="text-2xl font-bold">{formatPrice(Number(paymentResult.payment.amount))}</p>
                       <p className="text-sm text-foreground-muted">{paymentResult.payment.invoiceNumber}</p>
-                      {paymentResult.qpay.urls?.length > 0 && (
+                      {(paymentResult.qpay.urls?.length ?? 0) > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {paymentResult.qpay.urls.map((item: { name: string; link: string }) => (
+                          {paymentResult.qpay.urls?.map((item) => (
                             <a key={item.name} href={item.link} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg bg-brand-primary/10 text-brand-primary text-xs font-medium hover:bg-brand-primary/20">
                               {item.name}
                             </a>

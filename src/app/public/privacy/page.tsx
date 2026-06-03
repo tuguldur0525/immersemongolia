@@ -74,7 +74,7 @@ export default function PrivacyPage() {
 
           <div className="prose prose-sm max-w-none">
             <p className="text-foreground-secondary leading-relaxed mb-8">
-              Immerse Mongolia LLC ("бид", "манай") нь таны хувийн мэдээллийг хамгаалах үүргийг чухалчлан үздэг.
+              Immerse Mongolia LLC (&ldquo;бид&rdquo;, &ldquo;манай&rdquo;) нь таны хувийн мэдээллийг хамгаалах үүргийг чухалчлан үздэг.
               Энэхүү нууцлалын бодлого нь манай платформыг ашигласнаар ямар мэдээлэл цуглуулагдах,
               хэрхэн ашиглагдах, хамгаалагдах талаар тайлбарлана.
             </p>

@@ -28,8 +28,9 @@ const reviewSchema = z.object({
 })
 
 type ReviewFormData = z.infer<typeof reviewSchema>
+type VisitType = NonNullable<ReviewFormData['visitType']>
 
-const VISIT_TYPES = [
+const VISIT_TYPES: Array<{ value: VisitType; label: string }> = [
   { value: 'solo', label: 'Ганцаар' },
   { value: 'couple', label: 'Хоёулаа' },
   { value: 'family', label: 'Гэр бүлтэй' },
@@ -195,7 +196,7 @@ export default function ReviewSection({
                         <button
                           key={type.value}
                           type="button"
-                          onClick={() => setValue('visitType', type.value as any)}
+                          onClick={() => setValue('visitType', type.value)}
                           className={cn(
                             'px-3 py-1.5 rounded-full text-sm border transition-all',
                             current === type.value

@@ -2,13 +2,13 @@
 
 import { type ReactNode, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   BarChart2,
   Building2,
   CreditCard,
   Eye,
-  LogOut,
+  Globe,
   MapPin,
   Menu,
   Settings,
@@ -16,7 +16,6 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 type BusinessDashboardShellProps = {
@@ -53,14 +52,6 @@ export default function BusinessDashboardShell({
 }: BusinessDashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
-
-  async function signOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/auth/login')
-    router.refresh()
-  }
 
   return (
     <div className="min-h-screen bg-background-secondary flex">
@@ -117,13 +108,13 @@ export default function BusinessDashboardShell({
         </nav>
 
         <div className="p-3 border-t border-border">
-          <button
-            onClick={signOut}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-foreground-muted hover:text-brand-danger hover:bg-brand-danger/8 transition-colors w-full"
+          <Link
+            href="/"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground-muted transition-colors hover:bg-background-secondary hover:text-foreground"
           >
-            <LogOut size={16} />
-            Гарах
-          </button>
+            <Globe size={16} />
+            Сайт руу буцах
+          </Link>
         </div>
       </aside>
 

@@ -46,7 +46,7 @@ export default function TestimonialsSection() {
               className="glass-card rounded-2xl p-6 flex flex-col gap-4"
             >
               <Quote size={28} className="text-brand-primary/30" />
-              <p className="text-foreground-secondary leading-relaxed flex-1">"{t.text}"</p>
+              <p className="text-foreground-secondary leading-relaxed flex-1">&ldquo;{t.text}&rdquo;</p>
               <div className="flex items-center gap-1 mb-2">
                 {[1,2,3,4,5].map(s => (
                   <Star key={s} size={14} className={s <= t.rating ? 'text-brand-accent fill-current' : 'text-foreground-subtle'} />

@@ -6,6 +6,7 @@ import { Noto_Sans, Noto_Sans_Mongolian } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "react-hot-toast";
 import QueryProvider from "@/components/providers/QueryProvider";
+import { LanguageProvider } from "@/lib/i18n/client";
 import "@/styles/globals.css";
 
 const notoSans = Noto_Sans({
@@ -107,23 +108,25 @@ export default function RootLayout({
         className={`${notoSans.variable} ${notoMongolian.variable} font-sans antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <QueryProvider>
-            {children}
-            <Toaster
-              position="top-center"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: "var(--toast-bg)",
-                  color: "var(--toast-color)",
-                  borderRadius: "12px",
-                  border: "1px solid var(--toast-border)",
-                },
-              }}
-            />
-            <Analytics />
-            <SpeedInsights />
-          </QueryProvider>
+          <LanguageProvider>
+            <QueryProvider>
+              {children}
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: "var(--toast-bg)",
+                    color: "var(--toast-color)",
+                    borderRadius: "12px",
+                    border: "1px solid var(--toast-border)",
+                  },
+                }}
+              />
+              <Analytics />
+              <SpeedInsights />
+            </QueryProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

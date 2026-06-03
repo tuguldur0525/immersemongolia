@@ -4,11 +4,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Sun, Moon, Globe, Search, User, ChevronDown, MapPin, LogOut, Settings, BarChart2, Building2 } from 'lucide-react'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
+import { Menu, X, Sun, Moon, Globe, Search, ChevronDown, MapPin, LogOut, Settings, BarChart2, Building2, Home } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/client'
 import { cn } from '@/lib/utils'
 import type { User as AppUser } from '@/types'
 
@@ -16,23 +18,30 @@ interface NavbarProps {
   transparent?: boolean
 }
 
-const navLinks = [
-  { label: 'Газрын зураг', href: '/map', icon: MapPin },
-  { label: 'Хайх', href: '/business/search', icon: Search },
-  { label: 'Үнэ тариф', href: '/pricing' },
-  { label: 'Бидний тухай', href: '/public/about' },
-]
+function isActivePath(pathname: string, href: string) {
+  if (href === '/') return pathname === '/'
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
 
 export default function Navbar({ transparent = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const [dbUser, setDbUser] = useState<AppUser | null>(null)
-  const [lang, setLang] = useState<'mn' | 'en'>('mn')
   const { theme, setTheme } = useTheme()
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = useMemo(() => createClient(), [])
+  const { locale, setLocale, t } = useLanguage()
+
+  const navLinks = useMemo(() => [
+    { label: t('common.home'), href: '/', icon: Home },
+    { label: t('common.map'), href: '/map', icon: MapPin },
+    { label: t('common.search'), href: '/business/search', icon: Search },
+    { label: t('common.pricing'), href: '/pricing' },
+    { label: t('common.about'), href: '/public/about' },
+  ], [t])
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -94,11 +103,31 @@ export default function Navbar({ transparent = false }: NavbarProps) {
 
   const isScrolledOrSolid = !transparent || scrolled || mobileOpen
 
+  useEffect(() => {
+    if (!dbUser?.preferredLanguage || typeof window === 'undefined') return
+    if (!window.localStorage.getItem('immerse-locale')) {
+      setLocale(dbUser.preferredLanguage)
+    }
+  }, [dbUser?.preferredLanguage, setLocale])
+
   async function handleSignOut() {
     await supabase.auth.signOut()
     setUser(null)
     setDbUser(null)
     router.push('/')
+  }
+
+  function handleLanguageToggle() {
+    const nextLocale = locale === 'mn' ? 'en' : 'mn'
+    setLocale(nextLocale)
+
+    if (user) {
+      fetch('/api/users/language', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferredLanguage: nextLocale }),
+      }).catch(() => {})
+    }
   }
 
   const getDashboardLink = () => {
@@ -118,13 +147,15 @@ export default function Navbar({ transparent = false }: NavbarProps) {
             : 'bg-transparent'
         )}
       >
-        <nav aria-label="Primary navigation" className="section-container h-16 flex items-center justify-between gap-4">
+        <nav aria-label="Primary navigation" className="section-container h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href="/" aria-label="Immerse Mongolia home" className="flex items-center gap-2.5 font-bold text-xl shrink-0">
+          <Link href="/" aria-label="Immerse Mongolia home" className="flex min-w-0 shrink items-center gap-2.5 font-bold text-xl">
             <div className="size-9 rounded-xl bg-brand-gradient flex items-center justify-center shadow-glow-brand hover:scale-105 transition-transform duration-300">
               <Globe size={18} className="text-white animate-pulse-gentle" />
             </div>
-            <span className="gradient-text font-extrabold tracking-tight">Immerse Mongolia</span>
+            <span className="hidden xs:inline truncate gradient-text text-base font-extrabold tracking-normal sm:text-xl">
+              Immerse Mongolia
+            </span>
           </Link>
 
           {/* Desktop Nav Links */}
@@ -133,7 +164,12 @@ export default function Navbar({ transparent = false }: NavbarProps) {
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-background-secondary transition-colors"
+                className={cn(
+                  'px-3 py-2 rounded-xl text-sm font-medium transition-colors lg:px-4',
+                  isActivePath(pathname, link.href)
+                    ? 'bg-brand-primary/10 text-brand-primary'
+                    : 'text-foreground-secondary hover:text-foreground hover:bg-background-secondary'
+                )}
               >
                 {link.label}
               </Link>
@@ -141,14 +177,14 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {/* Language switcher */}
             <button
-              onClick={() => setLang(l => l === 'mn' ? 'en' : 'mn')}
+              onClick={handleLanguageToggle}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-background-secondary transition-colors"
             >
               <Globe size={16} />
-              {lang.toUpperCase()}
+              {locale.toUpperCase()}
             </button>
 
             {/* Dark mode */}
@@ -164,7 +200,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(v => !v)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-background-secondary transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-2 rounded-xl hover:bg-background-secondary transition-colors sm:gap-2 sm:px-3"
                 >
                   {dbUser.avatarUrl ? (
                     <Image src={dbUser.avatarUrl} alt="" width={28} height={28} className="rounded-full" />
@@ -224,10 +260,10 @@ export default function Navbar({ transparent = false }: NavbarProps) {
               <div className="flex items-center gap-2">
                 <Link href="/auth/login"
                   className="hidden sm:block px-4 py-2 rounded-xl text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-background-secondary transition-colors">
-                  Нэвтрэх
+                  {t('common.login')}
                 </Link>
                 <Link href="/auth/signup" className="btn-brand hidden px-4 py-2 text-sm sm:inline-flex">
-                  Бүртгүүлэх
+                  {t('common.signup')}
                 </Link>
               </div>
             )}
@@ -253,7 +289,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-16 z-40 bg-background/95 backdrop-blur-xl border-b border-border md:hidden"
+            className="fixed inset-x-0 top-16 z-40 max-h-[calc(100dvh-4rem)] overflow-y-auto bg-background/95 backdrop-blur-xl border-b border-border md:hidden"
           >
             <div className="section-container py-4 flex flex-col gap-1">
               {navLinks.map(link => (
@@ -261,22 +297,81 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-background-secondary transition-colors"
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors',
+                    isActivePath(pathname, link.href)
+                      ? 'bg-brand-primary/10 text-brand-primary'
+                      : 'hover:bg-background-secondary'
+                  )}
                 >
                   {link.icon && <link.icon size={18} className="text-foreground-muted" />}
                   {link.label}
                 </Link>
               ))}
-              {!user && (
+              <div className="border-t border-border my-2" />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleLanguageToggle}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium hover:bg-background-secondary transition-colors"
+                >
+                  <Globe size={16} />
+                  {locale === 'mn' ? 'MN' : 'EN'}
+                </button>
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium hover:bg-background-secondary transition-colors"
+                >
+                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                  {theme === 'dark' ? 'Light' : 'Dark'}
+                </button>
+              </div>
+              {user && dbUser ? (
                 <>
-                  <div className="border-t border-border my-2" />
+                  <div className="mt-2 rounded-xl border border-border bg-card p-3">
+                    <div className="flex items-center gap-3">
+                      {dbUser.avatarUrl ? (
+                        <Image src={dbUser.avatarUrl} alt="" width={36} height={36} className="rounded-full" />
+                      ) : (
+                        <div className="size-9 rounded-full bg-brand-primary/20 flex items-center justify-center text-xs font-semibold text-brand-primary">
+                          {(dbUser.firstName || dbUser.displayName || 'U')[0]}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{dbUser.displayName || dbUser.firstName}</p>
+                        <p className="truncate text-xs text-foreground-muted">{dbUser.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Link href={getDashboardLink()} onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-background-secondary transition-colors">
+                    <BarChart2 size={18} className="text-foreground-muted" />
+                    {t('common.dashboard')}
+                  </Link>
+                  <Link href="/dashboard/user/settings" onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-background-secondary transition-colors">
+                    <Settings size={18} className="text-foreground-muted" />
+                    {t('dashboard.settings')}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false)
+                      handleSignOut()
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-brand-danger hover:bg-brand-danger/8 transition-colors"
+                  >
+                    <LogOut size={18} />
+                    {t('common.logout')}
+                  </button>
+                </>
+              ) : (
+                <>
                   <Link href="/auth/login" onClick={() => setMobileOpen(false)}
                     className="px-4 py-3 rounded-xl text-sm font-medium hover:bg-background-secondary transition-colors">
-                    Нэвтрэх
+                    {t('common.login')}
                   </Link>
                   <Link href="/auth/signup" onClick={() => setMobileOpen(false)}
                     className="btn-brand justify-center mt-1">
-                    Бүртгүүлэх
+                    {t('common.signup')}
                   </Link>
                 </>
               )}

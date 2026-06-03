@@ -35,6 +35,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   default: '#6366f1',
 }
 
+type MapFeature = {
+  properties: Omit<MapBusiness, 'latitude' | 'longitude'>
+  geometry: { coordinates: [number, number] }
+}
+
 interface MapViewProps {
   initialBounds?: mapboxgl.LngLatBoundsLike
   filters?: {
@@ -104,7 +109,7 @@ export default function MapView({
 
       const { data } = await res.json()
       if (data?.features) {
-        const biz = data.features.map((f: any) => ({
+        const biz = (data.features as MapFeature[]).map((f) => ({
           ...f.properties,
           latitude: f.geometry.coordinates[1],
           longitude: f.geometry.coordinates[0],
@@ -143,8 +148,6 @@ export default function MapView({
       fetchBusinessesRef.current()
       return
     }
-
-    let loadTimeout: number | undefined
 
     try {
       map.current = new mapboxgl.Map({
@@ -192,7 +195,7 @@ export default function MapView({
     })
 
     requestAnimationFrame(() => map.current?.resize())
-    loadTimeout = window.setTimeout(() => {
+    const loadTimeout = window.setTimeout(() => {
       if (!mapLoadedRef.current) {
         setMapError('Газрын зураг ачаалахад удаж байна. Газруудыг fallback горимоор харуулж байна.')
         setIsFallbackMap(true)
@@ -205,7 +208,7 @@ export default function MapView({
     window.addEventListener('resize', handleResize)
 
     return () => {
-      if (loadTimeout) window.clearTimeout(loadTimeout)
+      window.clearTimeout(loadTimeout)
       window.removeEventListener('resize', handleResize)
       markersRef.current.forEach(m => m.remove())
       markersRef.current = []

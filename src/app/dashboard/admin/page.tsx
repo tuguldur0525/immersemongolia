@@ -7,21 +7,10 @@ import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
-  Users, Building2, CreditCard, Star, Shield, TrendingUp,
+  Users, Building2, CreditCard,
   AlertTriangle, CheckCircle, Clock, XCircle, Eye, BarChart2,
-  MapPin, Megaphone, Tag, Globe, MoreVertical, Search, Menu, X
 } from 'lucide-react'
 import { cn, formatInteger, formatNumber, formatPrice, formatRelativeTime } from '@/lib/utils'
-
-const ADMIN_NAV = [
-  { href: '/dashboard/admin', label: 'Хяналт', icon: BarChart2, active: true },
-  { href: '/dashboard/admin/businesses', label: 'Бизнесүүд', icon: Building2 },
-  { href: '/dashboard/admin/users', label: 'Хэрэглэгчид', icon: Users },
-  { href: '/dashboard/admin/analytics', label: 'Аналитик', icon: TrendingUp },
-  { href: '/dashboard/admin/content', label: 'Агуулга', icon: Globe },
-  { href: '/dashboard/admin/categories', label: 'Ангилал', icon: Tag },
-  { href: '/dashboard/admin/advertisements', label: 'Зар сурталчилгаа', icon: Megaphone },
-]
 
 const REVENUE_PERIODS = [
   { label: '7 хоног', days: 7 },
@@ -68,7 +57,6 @@ type AdminDashboardData = {
 }
 
 export default function AdminDashboardPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [revenuePeriod, setRevenuePeriod] = useState<(typeof REVENUE_PERIODS)[number]['days']>(30)
   const [actionError, setActionError] = useState('')
   const queryClient = useQueryClient()
@@ -189,63 +177,15 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background-secondary flex">
-      {/* Sidebar */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
-      <aside className={cn(
-        'fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300',
-        'lg:relative lg:translate-x-0',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      )}>
-          <div className="h-16 flex items-center gap-3 px-5 border-b border-border">
-          <div className="size-8 rounded-xl bg-brand-gradient flex items-center justify-center">
-            <Shield size={15} className="text-white" />
-          </div>
-          <div>
-            <span className="font-bold text-sm gradient-text">Immerse Mongolia</span>
-            <span className="text-xs text-foreground-muted block">Админ панел</span>
-          </div>
+    <div className="min-h-screen bg-background-secondary">
+      <header className="sticky top-0 z-10 border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-8">
+        <div>
+          <p className="text-xs font-medium text-foreground-muted">Админ</p>
+          <h1 className="font-bold">Хяналтын самбар</h1>
         </div>
-        <nav className="flex-1 p-3 overflow-y-auto">
-          <div className="space-y-0.5">
-            {ADMIN_NAV.map(link => (
-              <Link key={link.href} href={link.href}
-                className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-                  link.active ? 'bg-brand-primary/10 text-brand-primary' : 'text-foreground-secondary hover:bg-background-secondary'
-                )}>
-                <link.icon size={17} />
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        </nav>
-        <div className="p-3 border-t border-border">
-          <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground-muted hover:bg-background-secondary transition-colors">
-            <Globe size={16} />
-            Сайт руу буцах
-          </Link>
-        </div>
-      </aside>
+      </header>
 
-      {/* Main */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-16 bg-card border-b border-border flex items-center gap-4 px-4 sm:px-6 sticky top-0 z-20">
-          <button onClick={() => setSidebarOpen(v => !v)} className="lg:hidden size-9 rounded-xl border border-border flex items-center justify-center">
-            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-          <div className="flex-1">
-            <h1 className="font-bold">Хяналтын самбар</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative hidden sm:block">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" />
-              <input placeholder="Хайх..." className="pl-9 pr-4 py-2 rounded-xl border border-border bg-background-secondary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 w-52" />
-            </div>
-            <div className="size-9 rounded-full bg-brand-primary/10 flex items-center justify-center text-xs font-bold text-brand-primary">А</div>
-          </div>
-        </header>
-
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+      <main className="p-4 sm:p-6 lg:p-8">
           {actionError && (
             <div className="mb-4 rounded-xl border border-brand-danger/30 bg-brand-danger/8 px-4 py-3 text-sm text-brand-danger">
               {actionError}
@@ -458,8 +398,7 @@ export default function AdminDashboardPage() {
               ))}
             </div>
           </motion.div>
-        </main>
-      </div>
+      </main>
     </div>
   )
 }
