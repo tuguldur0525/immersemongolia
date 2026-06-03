@@ -5,12 +5,13 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
   Users, Building2, CreditCard, Star, Shield, TrendingUp,
   AlertTriangle, CheckCircle, Clock, XCircle, Eye, BarChart2,
   MapPin, Megaphone, Tag, Globe, MoreVertical, Search, Menu, X
 } from 'lucide-react'
-import { cn, formatInteger, formatPrice, formatRelativeTime } from '@/lib/utils'
+import { cn, formatInteger, formatNumber, formatPrice, formatRelativeTime } from '@/lib/utils'
 
 const ADMIN_NAV = [
   { href: '/dashboard/admin', label: 'Хяналт', icon: BarChart2, active: true },
@@ -21,6 +22,13 @@ const ADMIN_NAV = [
   { href: '/dashboard/admin/categories', label: 'Ангилал', icon: Tag },
   { href: '/dashboard/admin/advertisements', label: 'Зар сурталчилгаа', icon: Megaphone },
 ]
+
+const REVENUE_PERIODS = [
+  { label: '7 хоног', days: 7 },
+  { label: '30 хоног', days: 30 },
+  { label: '3 сар', days: 90 },
+  { label: '1 жил', days: 365 },
+] as const
 
 type AdminDashboardData = {
   stats: {
@@ -52,32 +60,79 @@ type AdminDashboardData = {
     status: string
     reason: string
   }>
+  revenueSeries: Array<{
+    date: string
+    revenueMnt: number
+    payments: number
+  }>
 }
 
 export default function AdminDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [revenuePeriod, setRevenuePeriod] = useState<(typeof REVENUE_PERIODS)[number]['days']>(30)
   const [actionError, setActionError] = useState('')
   const queryClient = useQueryClient()
-  const { data } = useQuery<AdminDashboardData>({
+  const { data, isLoading, error } = useQuery<AdminDashboardData>({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
       const res = await fetch('/api/dashboard/admin')
-      if (!res.ok) throw new Error('Failed to fetch admin dashboard')
-      const { data } = await res.json()
+      const payload = await res.json().catch(() => null)
+      if (!res.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Failed to fetch admin dashboard')
+      }
+      const { data } = payload
       return data
     },
+    retry: 0,
     staleTime: 60_000,
   })
   const dashboardStats = data?.stats
+  const hasDashboardError = Boolean(error)
 
   const stats = [
-    { label: 'Нийт хэрэглэгч', value: formatInteger(dashboardStats?.totalUsers ?? 0), delta: `+${formatInteger(dashboardStats?.newUsersLast7Days ?? 0)} сүүлийн 7 хоногт`, icon: Users, color: 'text-brand-primary', bg: 'bg-brand-primary/10' },
-    { label: 'Нийт бизнес', value: formatInteger(dashboardStats?.totalBusinesses ?? 0), delta: `+${formatInteger(dashboardStats?.newBusinessesLast7Days ?? 0)} сүүлийн 7 хоногт`, icon: Building2, color: 'text-brand-success', bg: 'bg-brand-success/10' },
-    { label: 'Орлого (сар)', value: formatPrice(dashboardStats?.monthlyRevenueMnt ?? 0), delta: `${(dashboardStats?.revenueDeltaPct ?? 0).toFixed(1)}% өмнөх сараас`, icon: CreditCard, color: 'text-brand-accent', bg: 'bg-brand-accent/10' },
-    { label: 'Хүлээгдэж буй', value: formatInteger((dashboardStats?.pendingBusinesses ?? 0) + (dashboardStats?.pendingReviews ?? 0)), delta: `${formatInteger(dashboardStats?.pendingBusinesses ?? 0)} бизнес, ${formatInteger(dashboardStats?.pendingReviews ?? 0)} санал`, icon: Clock, color: 'text-brand-warning', bg: 'bg-brand-warning/10' },
+    {
+      label: 'Нийт хэрэглэгч',
+      value: isLoading ? '...' : hasDashboardError ? '—' : formatInteger(dashboardStats?.totalUsers ?? 0),
+      delta: isLoading ? 'Ачаалж байна...' : hasDashboardError ? 'Ачаалж чадсангүй' : `+${formatInteger(dashboardStats?.newUsersLast7Days ?? 0)} сүүлийн 7 хоногт`,
+      icon: Users,
+      color: 'text-brand-primary',
+      bg: 'bg-brand-primary/10',
+    },
+    {
+      label: 'Нийт бизнес',
+      value: isLoading ? '...' : hasDashboardError ? '—' : formatInteger(dashboardStats?.totalBusinesses ?? 0),
+      delta: isLoading ? 'Ачаалж байна...' : hasDashboardError ? 'Ачаалж чадсангүй' : `+${formatInteger(dashboardStats?.newBusinessesLast7Days ?? 0)} сүүлийн 7 хоногт`,
+      icon: Building2,
+      color: 'text-brand-success',
+      bg: 'bg-brand-success/10',
+    },
+    {
+      label: 'Орлого (сар)',
+      value: isLoading ? '...' : hasDashboardError ? '—' : formatPrice(dashboardStats?.monthlyRevenueMnt ?? 0),
+      delta: isLoading ? 'Ачаалж байна...' : hasDashboardError ? 'Ачаалж чадсангүй' : `${(dashboardStats?.revenueDeltaPct ?? 0).toFixed(1)}% өмнөх сараас`,
+      icon: CreditCard,
+      color: 'text-brand-accent',
+      bg: 'bg-brand-accent/10',
+    },
+    {
+      label: 'Хүлээгдэж буй',
+      value: isLoading ? '...' : hasDashboardError ? '—' : formatInteger((dashboardStats?.pendingBusinesses ?? 0) + (dashboardStats?.pendingReviews ?? 0)),
+      delta: isLoading ? 'Ачаалж байна...' : hasDashboardError ? 'Ачаалж чадсангүй' : `${formatInteger(dashboardStats?.pendingBusinesses ?? 0)} бизнес, ${formatInteger(dashboardStats?.pendingReviews ?? 0)} санал`,
+      icon: Clock,
+      color: 'text-brand-warning',
+      bg: 'bg-brand-warning/10',
+    },
   ]
   const recentApprovals = data?.recentApprovals ?? []
   const recentReviews = data?.recentReviews ?? []
+  const revenueChartData = (data?.revenueSeries ?? [])
+    .slice(-revenuePeriod)
+    .map((item) => ({
+      ...item,
+      label: new Intl.DateTimeFormat('mn-MN', { month: 'short', day: 'numeric' }).format(new Date(item.date)),
+    }))
+  const selectedRevenueTotal = revenueChartData.reduce((sum, item) => sum + item.revenueMnt, 0)
+  const hasRevenueData = revenueChartData.some((item) => item.revenueMnt > 0)
   const averageMrr = dashboardStats?.activeSubscriptions
     ? (dashboardStats.monthlyRevenueMnt / dashboardStats.activeSubscriptions)
     : 0
@@ -196,6 +251,11 @@ export default function AdminDashboardPage() {
               {actionError}
             </div>
           )}
+          {hasDashboardError && (
+            <div className="mb-4 rounded-xl border border-brand-danger/30 bg-brand-danger/8 px-4 py-3 text-sm text-brand-danger">
+              Хяналтын самбарын мэдээлэл ачаалж чадсангүй. Датабаазын холболт болон session-ээ шалгаад дахин оролдоно уу.
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -311,34 +371,85 @@ export default function AdminDashboardPage() {
             </motion.div>
           </div>
 
-          {/* Revenue chart placeholder */}
+          {/* Revenue chart */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
             className="bg-card rounded-2xl border border-border p-5">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-semibold">Орлогын график</h2>
               <div className="flex items-center gap-2">
-                {['7 хоног', '30 хоног', '3 сар', '1 жил'].map(period => (
-                  <button key={period} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                    period === '30 хоног' ? 'bg-brand-primary text-white' : 'hover:bg-background-secondary text-foreground-muted'
+                {REVENUE_PERIODS.map(period => (
+                  <button
+                    key={period.days}
+                    onClick={() => setRevenuePeriod(period.days)}
+                    className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                      period.days === revenuePeriod ? 'bg-brand-primary text-white' : 'hover:bg-background-secondary text-foreground-muted'
                   )}>
-                    {period}
+                    {period.label}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="h-48 bg-background-secondary rounded-xl flex items-center justify-center">
-              <div className="text-center">
-                <BarChart2 size={36} className="text-foreground-subtle mx-auto mb-2" />
-                <p className="text-sm text-foreground-muted">Recharts-ээр график холбогдоно</p>
-              </div>
+            <div className="h-64 rounded-xl bg-background-secondary px-2 py-4">
+              {hasRevenueData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="adminRevenueGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--brand-primary))" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="hsl(var(--brand-primary))" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--foreground-muted))' }}
+                      minTickGap={18}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      width={68}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--foreground-muted))' }}
+                      tickFormatter={(value) => `₮${formatNumber(Number(value))}`}
+                    />
+                    <Tooltip
+                      formatter={(value) => [formatPrice(Number(value)), 'Орлого']}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.date ? formatRelativeTime(payload[0].payload.date) : ''}
+                      contentStyle={{
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: 12,
+                        background: 'hsl(var(--card))',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenueMnt"
+                      stroke="hsl(var(--brand-primary))"
+                      strokeWidth={2.5}
+                      fill="url(#adminRevenueGradient)"
+                      activeDot={{ r: 4 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart2 size={36} className="text-foreground-subtle mx-auto mb-2" />
+                    <p className="text-sm text-foreground-muted">Сонгосон хугацаанд төлөгдсөн орлого алга</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Quick stats below chart */}
             <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-border">
               {[
-                { label: 'Нийт орлого', value: formatPrice(dashboardStats?.monthlyRevenueMnt ?? 0) },
-                { label: 'Идэвхтэй захиалга', value: formatInteger(dashboardStats?.activeSubscriptions ?? 0) },
-                { label: 'Дундаж MRR', value: formatPrice(averageMrr) },
+                { label: 'Нийт орлого', value: isLoading ? '...' : hasDashboardError ? '—' : formatPrice(selectedRevenueTotal) },
+                { label: 'Идэвхтэй захиалга', value: isLoading ? '...' : hasDashboardError ? '—' : formatInteger(dashboardStats?.activeSubscriptions ?? 0) },
+                { label: 'Дундаж MRR', value: isLoading ? '...' : hasDashboardError ? '—' : formatPrice(averageMrr) },
               ].map(item => (
                 <div key={item.label} className="text-center">
                   <p className="text-lg font-bold">{item.value}</p>

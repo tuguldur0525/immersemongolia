@@ -41,6 +41,17 @@ export async function POST(request: NextRequest) {
     const amount = isAnnual ? prices.annual : prices.monthly
     const invoiceNumber = `IM-${Date.now()}-${nanoid(6).toUpperCase()}`
 
+    if (businessId) {
+      const business = await prisma.business.findFirst({
+        where: { id: businessId, ownerId: dbUser.id, deletedAt: null },
+        select: { id: true },
+      })
+
+      if (!business) {
+        return NextResponse.json({ success: false, error: 'Business not found' }, { status: 404 })
+      }
+    }
+
     // Create subscription period
     const startDate = new Date()
     const endDate = isAnnual ? addYears(startDate, 1) : addMonths(startDate, 1)
@@ -116,9 +127,9 @@ export async function POST(request: NextRequest) {
         invoiceNumber,
         paymentRequired: true,
         bankDetails: {
-          bankName: 'Голомт банк',
-          accountName: 'Иммэрс Монголиа ХХК',
-          accountNumber: process.env.BANK_ACCOUNT_NUMBER,
+          bankName: process.env.BANK_NAME || 'Голомт банк',
+          accountName: process.env.BANK_ACCOUNT_NAME || 'Иммэрс Монголиа ХХК',
+          accountNumber: process.env.BANK_ACCOUNT_NUMBER || '',
           reference: invoiceNumber,
         },
       },
@@ -142,27 +153,96 @@ export async function GET(request: NextRequest) {
       where: { supabaseId: user.id },
       select: { id: true },
     })
+    if (!dbUser) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
 
     const { searchParams } = request.nextUrl
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    const [payments, total] = await Promise.all([
+    const now = new Date()
+    const [payments, total, currentSubscription, businesses] = await Promise.all([
       prisma.payment.findMany({
-        where: { userId: dbUser!.id },
+        where: { userId: dbUser.id },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          subscription: { select: { plan: true, isAnnual: true, startDate: true, endDate: true } },
+          subscription: {
+            select: {
+              id: true,
+              plan: true,
+              status: true,
+              isAnnual: true,
+              startDate: true,
+              endDate: true,
+              renewalDate: true,
+              autoRenew: true,
+              priceAtPurchase: true,
+              currency: true,
+              businessId: true,
+            },
+          },
         },
       }),
-      prisma.payment.count({ where: { userId: dbUser!.id } }),
+      prisma.payment.count({ where: { userId: dbUser.id } }),
+      prisma.subscription.findFirst({
+        where: {
+          userId: dbUser.id,
+          status: { in: ['ACTIVE', 'PENDING_PAYMENT'] },
+          endDate: { gte: now },
+        },
+        orderBy: [{ status: 'asc' }, { endDate: 'desc' }],
+        select: {
+          id: true,
+          businessId: true,
+          plan: true,
+          status: true,
+          isAnnual: true,
+          startDate: true,
+          endDate: true,
+          renewalDate: true,
+          cancelledAt: true,
+          autoRenew: true,
+          priceAtPurchase: true,
+          currency: true,
+        },
+      }),
+      prisma.business.findMany({
+        where: { ownerId: dbUser.id, deletedAt: null },
+        orderBy: [{ isFeatured: 'desc' }, { updatedAt: 'desc' }],
+        select: { id: true, slug: true, nameMn: true, nameEn: true },
+      }),
     ])
 
     return NextResponse.json({
       success: true,
-      data: { payments, total, page, totalPages: Math.ceil(total / limit) },
+      data: {
+        payments: payments.map((payment) => ({
+          ...payment,
+          amount: Number(payment.amount),
+          subscription: payment.subscription ? {
+            ...payment.subscription,
+            priceAtPurchase: Number(payment.subscription.priceAtPurchase),
+          } : null,
+        })),
+        currentSubscription: currentSubscription ? {
+          ...currentSubscription,
+          priceAtPurchase: Number(currentSubscription.priceAtPurchase),
+        } : null,
+        businesses: businesses.map((business) => ({
+          id: business.id,
+          slug: business.slug,
+          name: business.nameMn || business.nameEn || 'Нэргүй бизнес',
+        })),
+        bankDetails: {
+          bankName: process.env.BANK_NAME || 'Голомт банк',
+          accountName: process.env.BANK_ACCOUNT_NAME || 'Иммэрс Монголиа ХХК',
+          accountNumber: process.env.BANK_ACCOUNT_NUMBER || '',
+        },
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      },
     })
   } catch (error) {
     console.error('GET /api/payments:', error)

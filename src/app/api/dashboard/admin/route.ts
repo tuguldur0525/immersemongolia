@@ -26,6 +26,9 @@ export async function GET() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const chartStart = new Date(now)
+    chartStart.setDate(chartStart.getDate() - 364)
+    chartStart.setHours(0, 0, 0, 0)
 
     const [
       totalUsers,
@@ -37,6 +40,7 @@ export async function GET() {
       activeSubscriptions,
       monthlyRevenue,
       previousMonthlyRevenue,
+      revenuePayments,
       recentApprovals,
       recentReviews,
     ] = await Promise.all([
@@ -59,6 +63,11 @@ export async function GET() {
       prisma.payment.aggregate({
         where: { status: 'PAID', paidAt: { gte: previousMonthStart, lt: monthStart } },
         _sum: { amount: true },
+      }),
+      prisma.payment.findMany({
+        where: { status: 'PAID', paidAt: { gte: chartStart } },
+        orderBy: { paidAt: 'asc' },
+        select: { amount: true, paidAt: true },
       }),
       prisma.business.findMany({
         where: { status: 'PENDING_REVIEW', deletedAt: null },
@@ -97,6 +106,27 @@ export async function GET() {
     const revenueDeltaPct = previousRevenueMnt > 0
       ? ((revenueMnt - previousRevenueMnt) / previousRevenueMnt) * 100
       : revenueMnt > 0 ? 100 : 0
+    const revenueByDate = new Map<string, { revenueMnt: number; payments: number }>()
+
+    for (let i = 0; i < 365; i++) {
+      const day = new Date(chartStart)
+      day.setDate(chartStart.getDate() + i)
+      revenueByDate.set(day.toISOString().slice(0, 10), { revenueMnt: 0, payments: 0 })
+    }
+
+    revenuePayments.forEach((payment) => {
+      if (!payment.paidAt) return
+      const key = payment.paidAt.toISOString().slice(0, 10)
+      const current = revenueByDate.get(key) ?? { revenueMnt: 0, payments: 0 }
+      current.revenueMnt += Number(payment.amount)
+      current.payments += 1
+      revenueByDate.set(key, current)
+    })
+
+    const revenueSeries = Array.from(revenueByDate.entries()).map(([date, value]) => ({
+      date,
+      ...value,
+    }))
 
     return NextResponse.json<ApiResponse>({
       success: true,
@@ -132,6 +162,7 @@ export async function GET() {
             ? `${review.reportCount} мэдэгдэл`
             : 'Модерац хүлээгдэж байна',
         })),
+        revenueSeries,
       },
     })
   } catch (error) {

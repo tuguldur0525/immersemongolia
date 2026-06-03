@@ -148,7 +148,7 @@ export default function HomePage() {
                   className="mb-5 max-w-3xl text-4xl font-black leading-[1.04] tracking-normal text-foreground text-balance sm:text-5xl lg:text-6xl"
                 >
                   Монголын хамгийн
-                  <span className="gradient-text block py-3">
+                  <span className="gradient-text block py-2">
                     шилдэг газруудыг
                   </span>
                   нээж илрүүл

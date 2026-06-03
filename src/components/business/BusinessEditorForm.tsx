@@ -280,6 +280,8 @@ export default function BusinessEditorForm({
   const [googleMapsUrl, setGoogleMapsUrl] = useState('')
   const [googleMapsError, setGoogleMapsError] = useState('')
   const [isResolvingGoogleMaps, setIsResolvingGoogleMaps] = useState(false)
+  const [uploadingImageType, setUploadingImageType] = useState<'COVER' | 'LOGO' | null>(null)
+  const [imageUploadMessage, setImageUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const {
     register,
@@ -487,6 +489,49 @@ export default function BusinessEditorForm({
       setErrorMessage(error instanceof Error ? error.message : 'Бизнес хадгалахад алдаа гарлаа')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function uploadBusinessImage(type: 'COVER' | 'LOGO', file: File | null | undefined) {
+    if (!file || !businessId || mode !== 'edit') return
+
+    setUploadingImageType(type)
+    setImageUploadMessage(null)
+
+    try {
+      const formData = new FormData()
+      formData.set('businessId', businessId)
+      formData.set('type', type)
+      formData.set('caption', type === 'COVER' ? 'Нүүр зураг' : 'Лого')
+      formData.set('file', file)
+
+      const res = await fetch('/api/dashboard/business/media', {
+        method: 'POST',
+        body: formData,
+      })
+      const payload = await res.json()
+
+      if (!res.ok || !payload.success) {
+        throw new Error(readApiError(payload, 'Зураг upload хийхэд алдаа гарлаа'))
+      }
+
+      const uploaded = payload.data as { url?: string }
+      if (!uploaded.url) throw new Error('Upload URL олдсонгүй')
+
+      if (type === 'COVER') {
+        setValue('coverImageUrl', uploaded.url, { shouldValidate: true })
+      } else {
+        setValue('logoUrl', uploaded.url, { shouldValidate: true })
+      }
+
+      setImageUploadMessage({ type: 'success', text: type === 'COVER' ? 'Нүүр зураг орууллаа.' : 'Лого орууллаа.' })
+    } catch (error) {
+      setImageUploadMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Зураг upload хийхэд алдаа гарлаа',
+      })
+    } finally {
+      setUploadingImageType(null)
     }
   }
 
@@ -753,10 +798,40 @@ export default function BusinessEditorForm({
               Зураг
             </h2>
 
+            {imageUploadMessage && (
+              <div className={cn(
+                'mb-4 rounded-xl border px-4 py-3 text-sm flex items-center gap-2',
+                imageUploadMessage.type === 'success'
+                  ? 'border-brand-success/25 bg-brand-success/8 text-brand-success'
+                  : 'border-brand-danger/25 bg-brand-danger/8 text-brand-danger'
+              )}>
+                {imageUploadMessage.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+                {imageUploadMessage.text}
+              </div>
+            )}
+
             <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-5">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Нүүр зураг URL</label>
+                  <div className="flex items-center justify-between gap-3 mb-1.5">
+                    <label className="text-sm font-medium block">Нүүр зураг</label>
+                    {mode === 'edit' && businessId && (
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 text-brand-primary text-xs font-medium cursor-pointer hover:bg-brand-primary/20 transition-colors">
+                        {uploadingImageType === 'COVER' ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                        Файлаас
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          className="hidden"
+                          disabled={uploadingImageType !== null}
+                          onChange={(event) => {
+                            uploadBusinessImage('COVER', event.target.files?.[0])
+                            event.currentTarget.value = ''
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                   <input
                     {...register('coverImageUrl')}
                     type="url"
@@ -767,7 +842,25 @@ export default function BusinessEditorForm({
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Лого URL</label>
+                  <div className="flex items-center justify-between gap-3 mb-1.5">
+                    <label className="text-sm font-medium block">Лого</label>
+                    {mode === 'edit' && businessId && (
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 text-brand-primary text-xs font-medium cursor-pointer hover:bg-brand-primary/20 transition-colors">
+                        {uploadingImageType === 'LOGO' ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                        Файлаас
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          className="hidden"
+                          disabled={uploadingImageType !== null}
+                          onChange={(event) => {
+                            uploadBusinessImage('LOGO', event.target.files?.[0])
+                            event.currentTarget.value = ''
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                   <input
                     {...register('logoUrl')}
                     type="url"
