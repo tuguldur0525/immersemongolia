@@ -1,7 +1,7 @@
 'use client'
 // src/app/auth/login/page.tsx
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, MapPin, ArrowLeft, Chrome } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { buildAuthCallbackUrl, buildGoogleOAuthUrl } from '@/lib/auth/redirects'
 import { cn } from '@/lib/utils'
 
 const loginSchema = z.object({
@@ -23,9 +24,10 @@ type LoginForm = z.infer<typeof loginSchema>
 function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const requestedRedirect = searchParams.get('redirectTo') || '/'
   const redirectTo = requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//')
     ? requestedRedirect
@@ -34,6 +36,14 @@ function LoginPageContent() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   })
+
+  const authError = searchParams.get('error')
+
+  useEffect(() => {
+    if (authError === 'callback_failed') {
+      setServerError('Google-ээр нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.')
+    }
+  }, [authError])
 
   async function onSubmit(data: LoginForm) {
     setServerError('')
@@ -54,10 +64,21 @@ function LoginPageContent() {
   }
 
   async function handleGoogleLogin() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}` },
-    })
+    setServerError('')
+    setIsGoogleLoading(true)
+
+    try {
+      const oauthUrl = await buildGoogleOAuthUrl(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        buildAuthCallbackUrl(window.location.origin, { next: redirectTo })
+      )
+
+      window.location.assign(oauthUrl)
+    } catch (error) {
+      console.error('Google OAuth URL creation failed:', error)
+      setServerError('Google-ээр нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.')
+      setIsGoogleLoading(false)
+    }
   }
 
   return (
@@ -141,11 +162,13 @@ function LoginPageContent() {
 
             {/* Google OAuth */}
             <button
+              type="button"
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border hover:bg-background-secondary transition-colors text-sm font-medium mb-6"
+              disabled={isGoogleLoading}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border hover:bg-background-secondary transition-colors text-sm font-medium mb-6 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Chrome size={18} />
-              Google-ээр нэвтрэх
+              {isGoogleLoading ? 'Google руу шилжиж байна...' : 'Google-ээр нэвтрэх'}
             </button>
 
             {/* Divider */}

@@ -1,8 +1,7 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import prisma from '@/lib/supabase/prisma'
 import { sendWelcomeEmail } from '@/lib/email'
-
-export type PublicProfileRole = 'USER' | 'BUSINESS_OWNER'
+import type { PublicProfileRole } from '@/lib/auth/redirects'
 
 interface EnsureUserProfileInput {
   firstName?: string | null

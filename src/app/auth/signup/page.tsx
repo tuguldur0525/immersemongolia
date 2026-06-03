@@ -1,7 +1,7 @@
 'use client'
 // src/app/auth/signup/page.tsx
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, MapPin, ArrowLeft, Chrome, User, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { buildAuthCallbackUrl, buildGoogleOAuthUrl } from '@/lib/auth/redirects'
 import { cn, formatInteger } from '@/lib/utils'
 import { usePlatformStats } from '@/hooks'
 
@@ -46,8 +47,9 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { data: platformStats } = usePlatformStats()
   const platformStatItems = [
     { num: formatInteger(platformStats?.totalBusinesses ?? 0), label: 'Бизнесүүд' },
@@ -70,7 +72,7 @@ export default function SignupPage() {
       password: data.password,
       options: {
         data: { firstName: data.firstName, lastName: data.lastName, role: data.role },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: buildAuthCallbackUrl(window.location.origin, { role: data.role }),
       },
     })
 
@@ -98,10 +100,22 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
+    setServerError('')
+    setIsGoogleLoading(true)
+
+    try {
+      const next = selectedRole === 'BUSINESS_OWNER' ? '/dashboard/business' : '/'
+      const oauthUrl = await buildGoogleOAuthUrl(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        buildAuthCallbackUrl(window.location.origin, { next, role: selectedRole })
+      )
+
+      window.location.assign(oauthUrl)
+    } catch (error) {
+      console.error('Google OAuth URL creation failed:', error)
+      setServerError('Google-ээр бүртгүүлэхэд алдаа гарлаа. Дахин оролдоно уу.')
+      setIsGoogleLoading(false)
+    }
   }
 
   if (success) {
@@ -208,10 +222,10 @@ export default function SignupPage() {
             </div>
 
             {/* Google */}
-            <button onClick={handleGoogleSignup}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border hover:bg-background-secondary transition-colors text-sm font-medium mb-5">
+            <button type="button" onClick={handleGoogleSignup} disabled={isGoogleLoading}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border hover:bg-background-secondary transition-colors text-sm font-medium mb-5 disabled:opacity-60 disabled:cursor-not-allowed">
               <Chrome size={18} />
-              Google-ээр бүртгүүлэх
+              {isGoogleLoading ? 'Google руу шилжиж байна...' : 'Google-ээр бүртгүүлэх'}
             </button>
 
             <div className="flex items-center gap-4 mb-5">

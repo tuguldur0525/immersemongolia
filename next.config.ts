@@ -69,14 +69,15 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  // Bundle analyzer (set ANALYZE=true to use)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack(config: any) {
+  webpack(config: any) {
+    // Bundle analyzer (set ANALYZE=true to use)
+    if (process.env.ANALYZE === 'true') {
       const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer')
       config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }))
-      return config
-    },
-  }),
+    }
+
+    return config
+  },
 }
 
 export default nextConfig
