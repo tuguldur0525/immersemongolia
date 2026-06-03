@@ -28,6 +28,20 @@ const signupSchema = z.object({
 
 type SignupForm = z.infer<typeof signupSchema>
 
+function getSignupErrorMessage(error: { message?: string; status?: number }) {
+  const message = error.message?.toLowerCase() ?? ''
+
+  if (error.message === 'User already registered') {
+    return 'Энэ имэйл хаяг бүртгэлтэй байна.'
+  }
+
+  if (error.status === 429 || message.includes('rate limit') || message.includes('too many requests')) {
+    return 'Богино хугацаанд олон удаа бүртгэл үүсгэх хүсэлт илгээсэн байна. Түр хүлээгээд дахин оролдоно уу.'
+  }
+
+  return 'Бүртгэл үүсгэхэд алдаа гарлаа.'
+}
+
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
@@ -61,9 +75,7 @@ export default function SignupPage() {
     })
 
     if (error) {
-      setServerError(error.message === 'User already registered'
-        ? 'Энэ имэйл хаяг бүртгэлтэй байна.'
-        : 'Бүртгэл үүсгэхэд алдаа гарлаа.')
+      setServerError(getSignupErrorMessage(error))
       return
     }
 
