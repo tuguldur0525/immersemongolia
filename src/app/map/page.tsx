@@ -1,11 +1,12 @@
 'use client'
 // src/app/map/page.tsx
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, X, MapPin, Star, BadgeCheck, Zap, ChevronDown, Search } from 'lucide-react'
+import { SlidersHorizontal, X, MapPin, Star, BadgeCheck, Zap, Search } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Navbar from '@/components/layout/Navbar'
 import MobileBottomNav from '@/components/layout/MobileBottomNav'
+import { getCategoryIcon } from '@/lib/category-icons'
 import { cn } from '@/lib/utils'
 
 // Lazy load map to avoid SSR issues
@@ -21,15 +22,15 @@ const MapView = dynamic(() => import('@/components/map/MapView'), { ssr: false,
 })
 
 const CATEGORIES = [
-  { slug: '', label: 'Бүгд', icon: '🗺️' },
-  { slug: 'restaurants', label: 'Ресторан', icon: '🍜' },
-  { slug: 'hotels', label: 'Зочид буудал', icon: '🏨' },
-  { slug: 'camps', label: 'Кемп', icon: '⛺' },
-  { slug: 'shopping', label: 'Дэлгүүр', icon: '🛍️' },
-  { slug: 'fitness', label: 'Фитнэс', icon: '💪' },
-  { slug: 'salons', label: 'Салон', icon: '💇' },
-  { slug: 'entertainment', label: 'Цэнгэл', icon: '🎮' },
-  { slug: 'medical', label: 'Эрүүл мэнд', icon: '🏥' },
+  { slug: '', label: 'Бүгд', icon: MapPin },
+  { slug: 'restaurants', label: 'Ресторан', icon: getCategoryIcon('restaurants') },
+  { slug: 'hotels', label: 'Зочид буудал', icon: getCategoryIcon('hotels') },
+  { slug: 'camps', label: 'Кемп', icon: getCategoryIcon('camps') },
+  { slug: 'shopping', label: 'Дэлгүүр', icon: getCategoryIcon('shopping') },
+  { slug: 'fitness', label: 'Фитнэс', icon: getCategoryIcon('fitness') },
+  { slug: 'salons', label: 'Салон', icon: getCategoryIcon('salons') },
+  { slug: 'entertainment', label: 'Цэнгэл', icon: getCategoryIcon('entertainment') },
+  { slug: 'medical', label: 'Эрүүл мэнд', icon: getCategoryIcon('medical') },
 ]
 
 const PRICE_RANGES = ['$', '$$', '$$$', '$$$$']
@@ -93,21 +94,24 @@ export default function MapPage() {
 
         {/* Category pills */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.slug}
-              onClick={() => setFilters(f => ({ ...f, categorySlug: f.categorySlug === cat.slug ? '' : cat.slug }))}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-all',
-                filters.categorySlug === cat.slug
-                  ? 'bg-brand-primary text-white border-brand-primary'
-                  : 'border-border bg-card hover:border-brand-primary hover:text-brand-primary'
-              )}
-            >
-              <span>{cat.icon}</span>
-              {cat.label}
-            </button>
-          ))}
+          {CATEGORIES.map(cat => {
+            const Icon = cat.icon
+            return (
+              <button
+                key={cat.slug}
+                onClick={() => setFilters(f => ({ ...f, categorySlug: f.categorySlug === cat.slug ? '' : cat.slug }))}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-all',
+                  filters.categorySlug === cat.slug
+                    ? 'bg-brand-primary text-white border-brand-primary'
+                    : 'border-border bg-card hover:border-brand-primary hover:text-brand-primary'
+                )}
+              >
+                <Icon size={14} />
+                {cat.label}
+              </button>
+            )
+          })}
         </div>
 
         {/* Filters button */}
@@ -169,21 +173,24 @@ export default function MapPage() {
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Ангилал</h4>
                     <div className="grid grid-cols-2 gap-2">
-                      {CATEGORIES.map(cat => (
-                        <button
-                          key={cat.slug}
-                          onClick={() => setFilters(f => ({ ...f, categorySlug: f.categorySlug === cat.slug ? '' : cat.slug }))}
-                          className={cn(
-                            'flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left',
-                            filters.categorySlug === cat.slug
-                              ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
-                              : 'border-border hover:border-brand-primary'
-                          )}
-                        >
-                          <span>{cat.icon}</span>
-                          {cat.label}
-                        </button>
-                      ))}
+                      {CATEGORIES.map(cat => {
+                        const Icon = cat.icon
+                        return (
+                          <button
+                            key={cat.slug}
+                            onClick={() => setFilters(f => ({ ...f, categorySlug: f.categorySlug === cat.slug ? '' : cat.slug }))}
+                            className={cn(
+                              'flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left',
+                              filters.categorySlug === cat.slug
+                                ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
+                                : 'border-border hover:border-brand-primary'
+                            )}
+                          >
+                            <Icon size={14} />
+                            {cat.label}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
 

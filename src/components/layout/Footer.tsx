@@ -1,7 +1,7 @@
 'use client'
 // src/components/layout/Footer.tsx
 import Link from 'next/link'
-import { MapPin, Globe, Facebook, Instagram, Twitter, Youtube } from 'lucide-react'
+import { Globe, Facebook, Instagram, Twitter, Youtube } from 'lucide-react'
 
 export default function Footer() {
   const links = {
@@ -14,7 +14,6 @@ export default function Footer() {
     business: [
       { label: 'Бизнесээ нэмэх', href: '/auth/signup' },
       { label: 'Үнэ тариф', href: '/pricing' },
-      { label: 'Эзэмшлийн нэхэмжлэл', href: '/claims' },
       { label: 'Бизнесийн панел', href: '/dashboard/business' },
     ],
     support: [

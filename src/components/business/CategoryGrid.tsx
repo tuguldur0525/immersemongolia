@@ -1,11 +1,10 @@
 'use client'
 // src/components/business/CategoryGrid.tsx
 import Link from 'next/link'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { getCategoryImage } from '@/lib/category-assets'
 import { useCategories } from '@/hooks'
 import { formatInteger } from '@/lib/utils'
+import { getCategoryIcon } from '@/lib/category-icons'
 
 type CategoryWithCount = {
   id: string
@@ -36,6 +35,7 @@ export default function CategoryGrid() {
       {visibleCategories.map((cat, i) => {
         const color = cat.color || '#3b82f6'
         const count = cat._count?.businesses ?? cat.businessCount ?? 0
+        const Icon = getCategoryIcon(cat.slug)
 
         return (
         <motion.div
@@ -53,17 +53,9 @@ export default function CategoryGrid() {
               '--cat-color-light': `${color}06`
             } as React.CSSProperties}>
             <div
-              className="relative size-16 overflow-hidden rounded-2xl border shadow-sm transition-transform duration-300 group-hover:rotate-2 group-hover:scale-105"
-              style={{ background: `${color}10`, borderColor: `${color}25` }}>
-              {getCategoryImage(cat.slug) ? (
-                <Image
-                  src={getCategoryImage(cat.slug)!}
-                  alt=""
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
-              ) : null}
+              className="flex size-16 items-center justify-center rounded-2xl border shadow-sm transition-transform duration-300 group-hover:rotate-2 group-hover:scale-105"
+              style={{ background: `${color}12`, borderColor: `${color}28`, color }}>
+              <Icon size={28} strokeWidth={2.1} />
             </div>
             <div className="text-center flex-1 flex flex-col justify-center">
               <p className="text-xs font-semibold leading-snug group-hover:text-[var(--cat-color)] transition-colors line-clamp-2">{cat.nameMn}</p>

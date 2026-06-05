@@ -177,7 +177,10 @@ export function useToggleSaved() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId }),
       })
-      if (!res.ok) throw new Error('Failed to update saved')
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null)
+        throw new Error(res.status === 401 ? 'Unauthorized' : payload?.error || 'Failed to update saved')
+      }
       return res.json()
     },
     onSuccess: () => {

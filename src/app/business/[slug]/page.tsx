@@ -1,11 +1,13 @@
 "use client";
 // src/app/business/[slug]/page.tsx
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  Check,
   Phone,
   Globe,
   Mail,
@@ -30,7 +32,12 @@ import Footer from "@/components/layout/Footer";
 import ReviewSection from "@/components/business/ReviewSection";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { BusinessCard } from "@/components/business/BusinessCard";
-import { useBusiness, useBusinesses } from "@/hooks";
+import {
+  useBusiness,
+  useBusinesses,
+  useSavedBusinesses,
+  useToggleSaved,
+} from "@/hooks";
 import { cn, formatInteger, isOpenNow } from "@/lib/utils";
 import type { BusinessDetail, BusinessListItem, BusinessMedia } from "@/types";
 
@@ -52,14 +59,154 @@ function getGallery(business: BusinessDetail) {
 
 export default function BusinessDetailPage() {
   const params = useParams<{ slug?: string | string[] }>();
+  const router = useRouter();
   const slug = getSlugParam(params.slug);
   const { data, isLoading, isError } = useBusiness(slug);
   const business = data as BusinessDetail | undefined;
+  const { data: savedBusinesses = [] } = useSavedBusinesses();
+  const toggleSaved = useToggleSaved();
+  const [isSaved, setIsSaved] = useState(false);
+  const [recentSaved, setRecentSaved] = useState(false);
+  const [recentPending, setRecentPending] = useState(false);
+  const [shareStatus, setShareStatus] = useState<
+    "idle" | "copied" | "shared" | "ready"
+  >("idle");
   const { data: relatedData, isLoading: isRelatedLoading } = useBusinesses({
     categorySlug: business?.category?.slug,
     limit: 5,
     sortBy: "rating",
   });
+
+  useEffect(() => {
+    if (!business?.id) return;
+
+    const savedItems = savedBusinesses as Array<{ id: string }>;
+    setIsSaved(savedItems.some((item) => item.id === business.id));
+  }, [business?.id, savedBusinesses]);
+
+  useEffect(() => {
+    if (!business?.id) return;
+
+    let cancelled = false;
+
+    fetch("/api/users/recently-viewed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId: business.id, source: "detail" }),
+    })
+      .then((res) => {
+        if (res.ok && !cancelled) setRecentSaved(true);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [business?.id]);
+
+  async function handleSave() {
+    if (!business || toggleSaved.isPending) return;
+
+    const wasSaved = isSaved;
+    setIsSaved(!wasSaved);
+
+    try {
+      await toggleSaved.mutateAsync({
+        businessId: business.id,
+        isSaved: wasSaved,
+      });
+    } catch (error) {
+      setIsSaved(wasSaved);
+      if (error instanceof Error && error.message === "Unauthorized") {
+        router.push(
+          `/auth/login?redirect=${encodeURIComponent(`/business/${business.slug}`)}`,
+        );
+      }
+    }
+  }
+
+  async function handleRecent() {
+    if (!business || recentPending) return;
+
+    setRecentPending(true);
+    try {
+      const res = await fetch("/api/users/recently-viewed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: business.id, source: "detail" }),
+      });
+      if (res.status === 401) {
+        router.push(
+          `/auth/login?redirect=${encodeURIComponent(`/business/${business.slug}`)}`,
+        );
+        return;
+      }
+      if (!res.ok) throw new Error("Recently viewed update failed");
+      setRecentSaved(true);
+    } catch (error) {
+      console.error("Recently viewed action failed:", error);
+    } finally {
+      setRecentPending(false);
+    }
+  }
+
+  async function copyToClipboard(text: string) {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {}
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+
+    if (!copied) {
+      throw new Error("Copy command failed");
+    }
+  }
+
+  async function handleShare() {
+    if (!business) return;
+
+    const url = window.location.href;
+    const title = business.nameMn || business.nameEn || "Immerse Mongolia";
+
+    try {
+      const shouldUseNativeShare =
+        typeof navigator.share === "function" &&
+        window.matchMedia("(pointer: coarse)").matches;
+
+      if (shouldUseNativeShare) {
+        await navigator.share({ title, url });
+        setShareStatus("shared");
+        window.setTimeout(() => setShareStatus("idle"), 1800);
+        return;
+      }
+
+      await copyToClipboard(url);
+      setShareStatus("copied");
+      window.setTimeout(() => setShareStatus("idle"), 1800);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+
+      try {
+        await copyToClipboard(url);
+        setShareStatus("copied");
+        window.setTimeout(() => setShareStatus("idle"), 1800);
+      } catch {
+        setShareStatus("ready");
+        window.setTimeout(() => setShareStatus("idle"), 1800);
+      }
+    }
+  }
 
   if (isLoading) {
     return (
@@ -244,12 +391,59 @@ export default function BusinessDetailPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button className="size-10 rounded-xl border border-border flex items-center justify-center text-foreground-secondary hover:text-brand-danger hover:border-brand-danger transition-colors">
-                    <Heart size={18} />
+                <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={toggleSaved.isPending}
+                    aria-pressed={isSaved}
+                    className={cn(
+                      "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      isSaved
+                        ? "border-brand-danger/35 bg-brand-danger/10 text-brand-danger"
+                        : "border-border text-foreground-secondary hover:border-brand-danger hover:text-brand-danger",
+                    )}
+                  >
+                    <Heart size={18} fill={isSaved ? "currentColor" : "none"} />
+                    <span className="hidden sm:inline">
+                      {isSaved ? "Хадгалсан" : "Хадгалах"}
+                    </span>
                   </button>
-                  <button className="size-10 rounded-xl border border-border flex items-center justify-center text-foreground-secondary hover:text-brand-primary hover:border-brand-primary transition-colors">
-                    <Share2 size={18} />
+                  <button
+                    type="button"
+                    onClick={handleRecent}
+                    disabled={recentPending}
+                    aria-pressed={recentSaved}
+                    className={cn(
+                      "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      recentSaved
+                        ? "border-brand-primary/35 bg-brand-primary/10 text-brand-primary"
+                        : "border-border text-foreground-secondary hover:border-brand-primary hover:text-brand-primary",
+                    )}
+                  >
+                    <Clock size={18} />
+                    <span className="hidden sm:inline">Сүүлд үзсэн</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className={cn(
+                      "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors",
+                      shareStatus !== "idle"
+                        ? "border-brand-success/35 bg-brand-success/10 text-brand-success"
+                        : "border-border text-foreground-secondary hover:border-brand-primary hover:text-brand-primary",
+                    )}
+                  >
+                    {shareStatus !== "idle" ? <Check size={18} /> : <Share2 size={18} />}
+                    <span className="hidden sm:inline">
+                      {shareStatus === "shared"
+                        ? "Хуваалцлаа"
+                        : shareStatus === "copied"
+                          ? "Хуулагдлаа"
+                          : shareStatus === "ready"
+                            ? "Линк бэлэн"
+                          : "Хуваалцах"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -425,7 +619,7 @@ export default function BusinessDetailPage() {
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="glass-card rounded-2xl p-5 sticky top-20"
+              className="glass-card rounded-2xl p-5"
             >
               <h3 className="font-bold text-lg mb-4">Холбоо барих</h3>
               <div className="space-y-3 mb-5">
@@ -605,18 +799,6 @@ export default function BusinessDetailPage() {
                 </Link>
               </div>
             </motion.div>
-
-            <div className="rounded-2xl border border-dashed border-border p-4 text-center">
-              <p className="text-sm text-foreground-muted mb-2">
-                Энэ бизнесийн эзэн мөн үү?
-              </p>
-              <Link
-                href={`/claims/claim?business=${business.id}`}
-                className="text-sm font-medium text-brand-primary hover:underline"
-              >
-                Эзэмшлийг нэхэмжлэх
-              </Link>
-            </div>
           </div>
         </div>
 

@@ -244,9 +244,16 @@ export default function MapView({
           slug: data.slug,
           nameMn: data.nameMn,
           nameEn: data.nameEn,
+          taglineMn: data.taglineMn || null,
+          taglineEn: data.taglineEn || null,
+          addressMn: data.addressMn || null,
+          district: data.district || null,
+          city: data.city || null,
           latitude: Number(data.latitude),
           longitude: Number(data.longitude),
           categorySlug: data.category?.slug || 'default',
+          categoryNameMn: data.category?.nameMn || null,
+          categoryIcon: data.category?.icon || null,
           categoryColor: data.category?.color || null,
           avgRating: Number(data.avgRating || 0),
           totalReviews: data.totalReviews || data._count?.reviews || 0,
@@ -381,7 +388,7 @@ export default function MapView({
           const logo = document.createElement('img')
           logo.src = biz.logoUrl
           logo.alt = biz.nameMn
-          logo.loading = 'lazy'
+          logo.loading = 'eager'
           logo.decoding = 'async'
           logo.referrerPolicy = 'no-referrer'
           logo.style.cssText = `
@@ -537,7 +544,7 @@ export default function MapView({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-20"
+            className="absolute bottom-24 left-4 right-4 z-30 sm:bottom-6 sm:left-auto sm:right-4 sm:w-96"
           >
             <div className="bg-card rounded-2xl border border-border shadow-xl overflow-hidden">
               {/* Header image */}
@@ -553,7 +560,7 @@ export default function MapView({
               {/* Content */}
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="font-semibold text-base leading-tight line-clamp-1">
+                  <h3 className="font-semibold text-base leading-tight line-clamp-1 sm:text-lg">
                     {selectedBusiness.nameMn}
                   </h3>
                   <button
@@ -575,6 +582,34 @@ export default function MapView({
                   {selectedBusiness.isVerified && (
                     <span className="verified-badge text-xs">✓</span>
                   )}
+                </div>
+
+                <div className="mb-3 hidden space-y-2 text-sm sm:block">
+                  {(selectedBusiness.taglineMn || selectedBusiness.taglineEn) && (
+                    <p className="line-clamp-2 text-foreground-secondary">
+                      {selectedBusiness.taglineMn || selectedBusiness.taglineEn}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-foreground-muted">
+                    {selectedBusiness.categoryNameMn && (
+                      <span className="rounded-full border border-border bg-background-secondary px-2.5 py-1 font-medium">
+                        {selectedBusiness.categoryNameMn}
+                      </span>
+                    )}
+                    {selectedBusiness.priceRange && (
+                      <span className="rounded-full border border-border bg-background-secondary px-2.5 py-1 font-bold">
+                        {selectedBusiness.priceRange}
+                      </span>
+                    )}
+                    {(selectedBusiness.addressMn || selectedBusiness.district || selectedBusiness.city) && (
+                      <span className="flex min-w-0 items-center gap-1">
+                        <MapPin size={12} className="shrink-0 text-brand-primary" />
+                        <span className="truncate">
+                          {[selectedBusiness.addressMn, selectedBusiness.district, selectedBusiness.city].filter(Boolean).join(', ')}
+                        </span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <Link
@@ -644,7 +679,7 @@ function FallbackBusinessMap({
         />
       ))}
 
-      <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 sm:left-auto sm:w-96 sm:flex-col sm:overflow-y-auto sm:overflow-x-hidden sm:pb-0">
+      <div className="absolute bottom-24 left-4 right-4 flex gap-2 overflow-x-auto pb-1 sm:bottom-4 sm:left-auto sm:w-96 sm:flex-col sm:overflow-y-auto sm:overflow-x-hidden sm:pb-0">
         {visibleBusinesses.slice(0, 8).map((biz) => (
           <button
             key={biz.id}
@@ -714,16 +749,19 @@ function FallbackPin({
       }}
       title={business?.nameMn || 'Таны байршил'}
     >
+      {!isUserPin && (
+        <MapPin size={17} className="absolute text-white" />
+      )}
       {business?.logoUrl ? (
         <img
           src={business.logoUrl}
           alt={business.nameMn}
-          className="h-full w-full object-cover"
-          loading="lazy"
+          className="relative z-10 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
           referrerPolicy="no-referrer"
+          onError={(event) => event.currentTarget.remove()}
         />
-      ) : !isUserPin ? (
-        <MapPin size={17} className="text-white" />
       ) : null}
     </button>
   )

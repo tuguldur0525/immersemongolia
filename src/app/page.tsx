@@ -5,12 +5,15 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
+  Compass,
   Hotel,
   MapPin,
+  Minus,
   Navigation,
-  Search,
-  ShieldCheck,
+  Plus,
   ShoppingBag,
+  Sparkles,
   Star,
   ChevronRight,
   Tent,
@@ -46,55 +49,73 @@ const fadeUp = {
   },
 };
 
-const heroLinkConfig = [
+const heroLinks = [
   {
     key: "restaurants",
+    label: "Restaurants",
     href: "/business/search?categorySlug=restaurants",
     icon: Utensils,
   },
   {
     key: "hotels",
+    label: "Hotels",
     href: "/business/search?categorySlug=hotels",
     icon: Hotel,
   },
-  { key: "camps", href: "/business/search?categorySlug=camps", icon: Tent },
+  {
+    key: "camps",
+    label: "Ger Camps",
+    href: "/business/search?categorySlug=camps",
+    icon: Tent,
+  },
   {
     key: "shopping",
+    label: "Shopping",
     href: "/business/search?categorySlug=shopping",
     icon: ShoppingBag,
   },
-];
+] as const;
 
 const heroPins = [
   {
     key: "restaurants",
-    top: "24%",
-    left: "26%",
+    top: "26%",
+    left: "22%",
     icon: Utensils,
-    color: "bg-brand-danger",
+    tint: "hsl(var(--brand-danger))",
+    label: "Modern Nomads",
   },
   {
     key: "hotels",
-    top: "38%",
-    left: "64%",
+    top: "40%",
+    left: "62%",
     icon: Hotel,
-    color: "bg-brand-primary",
+    tint: "hsl(var(--brand-primary))",
+    label: "Shangri-La",
   },
   {
     key: "camps",
-    top: "62%",
-    left: "35%",
+    top: "66%",
+    left: "32%",
     icon: Tent,
-    color: "bg-brand-success",
+    tint: "hsl(var(--brand-success))",
+    label: "Three Camel Lodge",
   },
   {
     key: "shopping",
-    top: "55%",
-    left: "72%",
+    top: "56%",
+    left: "74%",
     icon: ShoppingBag,
-    color: "bg-brand-accent",
+    tint: "hsl(var(--brand-accent))",
+    label: "Gobi Cashmere",
   },
-];
+] as const;
+
+const heroStats = [
+  { key: "businesses", label: "Businesses", value: "12,480", icon: Building2 },
+  { key: "reviews", label: "Reviews", value: "84,320", icon: Star },
+  { key: "users", label: "Users", value: "126,540", icon: Users },
+] as const;
 
 const HOME_COPY = {
   mn: {
@@ -110,7 +131,6 @@ const HOME_COPY = {
     },
     heroPanelTitle: "Улаанбаатар",
     heroPanelSubtitle: "Газрын зураг дээрх нээлт",
-    heroPanelBadge: "Live",
     heroPanelCoordinates: "47.9189, 106.9176",
     heroPanelFeatured: (count: string) => `Өнөөдөр онцлох ${count} газар`,
     heroPanelTotal: (count: string) => `Нийт ${count} газар`,
@@ -155,7 +175,6 @@ const HOME_COPY = {
     },
     heroPanelTitle: "Ulaanbaatar",
     heroPanelSubtitle: "Live discovery map",
-    heroPanelBadge: "Live",
     heroPanelCoordinates: "47.9189, 106.9176",
     heroPanelFeatured: (count: string) => `${count} featured places today`,
     heroPanelTotal: (count: string) => `${count} places listed`,
@@ -193,29 +212,34 @@ export default function HomePage() {
   const { locale, t } = useLanguage();
   const { data: platformStats } = usePlatformStats();
   const copy = HOME_COPY[locale];
-  const heroLinks = heroLinkConfig.map((item) => ({
-    ...item,
-    label: t(`categories.${item.key}`),
-  }));
-  const heroStats = [
-    {
-      label: copy.stats.businesses,
-      value: formatInteger(platformStats?.totalBusinesses ?? 0),
-      icon: Building2,
-    },
-    {
-      label: copy.stats.reviews,
-      value: formatInteger(platformStats?.totalReviews ?? 0),
-      icon: Star,
-    },
-    {
-      label: copy.stats.users,
-      value: formatInteger(platformStats?.totalUsers ?? 0),
-      icon: Users,
-    },
-  ];
-  const featuredCount = platformStats?.featuredBusinesses ?? 0;
   const activeBusinessCount = platformStats?.totalBusinesses ?? 0;
+  const featuredCount = platformStats?.featuredBusinesses ?? 0;
+  const activeBusinessCountLabel =
+    activeBusinessCount > 0
+      ? formatInteger(activeBusinessCount)
+      : heroStats[0].value;
+  const featuredCountLabel =
+    featuredCount > 0 ? formatInteger(featuredCount) : "248";
+  const localizedHeroLinks = heroLinks.map((item) => ({
+    ...item,
+    label: locale === "en" ? item.label : t(`categories.${item.key}`),
+  }));
+  const heroStatValues = {
+    businesses: activeBusinessCountLabel,
+    reviews:
+      platformStats?.totalReviews && platformStats.totalReviews > 0
+        ? formatInteger(platformStats.totalReviews)
+        : heroStats[1].value,
+    users:
+      platformStats?.totalUsers && platformStats.totalUsers > 0
+        ? formatInteger(platformStats.totalUsers)
+        : heroStats[2].value,
+  } as const;
+  const localizedHeroStats = heroStats.map((item) => ({
+    ...item,
+    label: locale === "en" ? item.label : copy.stats[item.key],
+    value: heroStatValues[item.key],
+  }));
 
   return (
     <>
@@ -223,29 +247,33 @@ export default function HomePage() {
 
       <main>
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden border-b border-border bg-background pt-20 sm:pt-28 lg:flex lg:min-h-[660px] lg:items-center lg:pt-24">
-          <div className="section-container relative z-10 pb-14 lg:pb-16">
-            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(380px,500px)] xl:gap-14">
+        <section className="relative overflow-hidden border-b border-border bg-hero-gradient pt-20 sm:pt-24 lg:flex lg:min-h-[720px] lg:items-center lg:pt-24">
+          <div className="absolute inset-0 grid-bg opacity-45 [mask-image:radial-gradient(ellipse_at_center,black_28%,transparent_76%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-background-secondary/80 to-transparent" />
+          <div className="section-container relative z-10 pb-16 lg:pb-20">
+            <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] xl:gap-16">
               <motion.div
                 variants={stagger}
                 initial="initial"
                 animate="animate"
-                className="max-w-4xl"
+                className="max-w-4xl space-y-7"
               >
                 <motion.h1
                   variants={fadeUp}
-                  className="mb-5 max-w-3xl text-4xl font-black leading-[1.04] tracking-normal text-foreground text-balance sm:text-5xl lg:text-6xl"
+                  className="max-w-4xl text-4xl font-black leading-[1.03] tracking-normal text-foreground text-balance sm:text-5xl lg:text-5xl xl:text-6xl"
                 >
                   {copy.heroTitleTop}
-                  <span className="gradient-text block py-2">
-                    {copy.heroTitleAccent}
+                  <span className="relative block w-fit py-2 pr-1">
+                    <span className="text-gradient-brand relative z-10">
+                      {copy.heroTitleAccent}
+                    </span>
                   </span>
                   {copy.heroTitleBottom}
                 </motion.h1>
 
                 <motion.p
                   variants={fadeUp}
-                  className="mb-6 max-w-2xl text-base font-medium leading-7 text-foreground-secondary sm:mb-7 sm:text-lg sm:leading-8"
+                  className="max-w-2xl text-base font-medium leading-7 text-foreground-secondary text-balance sm:text-lg sm:leading-8"
                 >
                   {copy.heroDescription}
                 </motion.p>
@@ -254,32 +282,35 @@ export default function HomePage() {
                 </motion.div>
                 <motion.div
                   variants={fadeUp}
-                  className="mt-5 flex flex-wrap gap-2.5"
+                  className="flex flex-wrap items-center gap-2"
                 >
-                  {heroLinks.map(({ label, href, icon: Icon }) => (
+                  {localizedHeroLinks.map(({ label, href, icon: Icon }) => (
                     <Link
                       key={href}
                       href={href}
-                      className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/78 px-3.5 py-2 text-sm font-semibold text-foreground-secondary shadow-sm shadow-slate-900/5 transition-all hover:-translate-y-0.5 hover:border-brand-primary/50 hover:bg-card hover:text-brand-primary dark:bg-card/78"
+                      className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card/80 px-3.5 py-1.5 text-sm font-semibold text-foreground-muted shadow-soft backdrop-blur transition-all hover:-translate-y-0.5 hover:border-brand-primary/45 hover:bg-brand-primary/5 hover:text-brand-primary"
                     >
-                      <Icon size={15} />
+                      <Icon className="size-3.5 transition-transform group-hover:scale-110" />
                       {label}
                     </Link>
                   ))}
                 </motion.div>
                 <motion.div
                   variants={fadeUp}
-                  className="mt-7 hidden max-w-2xl grid-cols-3 gap-2 rounded-2xl border border-border/75 bg-white/66 p-2 shadow-sm backdrop-blur dark:bg-card/66 sm:grid"
+                  className="hidden max-w-2xl grid-cols-3 gap-3 pt-1 sm:grid"
                 >
-                  {heroStats.map(({ label, value, icon: Icon }) => (
-                    <div key={label} className="rounded-xl px-3 py-2.5">
-                      <div className="mb-1 flex items-center gap-1.5 text-brand-primary">
-                        <Icon size={15} />
-                        <span className="text-[11px] font-bold uppercase text-foreground-muted">
+                  {localizedHeroStats.map(({ label, value, icon: Icon }) => (
+                    <div
+                      key={label}
+                      className="group rounded-2xl border border-border bg-card/65 p-4 shadow-soft backdrop-blur transition-all hover:-translate-y-0.5 hover:border-brand-primary/30"
+                    >
+                      <div className="flex items-center gap-2 text-foreground-muted">
+                        <Icon className="size-4" />
+                        <span className="text-[11px] font-bold uppercase tracking-wide">
                           {label}
                         </span>
                       </div>
-                      <p className="text-lg font-black leading-none text-foreground sm:text-xl">
+                      <p className="mt-2 text-xl font-black leading-none text-foreground sm:text-2xl">
                         {value}
                       </p>
                     </div>
@@ -295,77 +326,164 @@ export default function HomePage() {
                   delay: 0.25,
                   ease: [0.16, 1, 0.3, 1],
                 }}
-                className="hidden lg:block"
+                className="relative hidden lg:block"
               >
-                <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 p-3 shadow-xl shadow-slate-900/12 backdrop-blur-xl dark:border-border/80 dark:bg-card/82">
-                  <div className="flex items-center justify-between px-3 pb-3 pt-1">
-                    <div>
-                      <p className="text-sm font-black text-foreground">
-                        {copy.heroPanelTitle}
-                      </p>
-                      <p className="text-xs font-medium text-foreground-muted">
-                        {copy.heroPanelSubtitle}
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-success/10 px-3 py-1 text-xs font-bold text-brand-success">
-                      <ShieldCheck size={13} />
-                      {copy.heroPanelBadge}
-                    </div>
-                  </div>
+                <div className="relative animate-float">
+                  <div
+                    className="absolute -inset-1 rounded-[2rem] opacity-55 blur-2xl"
+                    style={{ background: "var(--gradient-brand)" }}
+                  />
 
-                  <div className="relative h-[330px] overflow-hidden rounded-[1.45rem] border border-border/75 bg-background-secondary">
-                    <div className="absolute left-[-12%] top-[42%] h-3 w-[125%] rotate-[-12deg] rounded-full bg-border/80" />
-                    <div className="absolute left-[16%] top-[-8%] h-[116%] w-3 rotate-[18deg] rounded-full bg-border/70" />
-                    <div className="absolute left-[38%] top-[10%] h-2.5 w-[78%] rotate-[28deg] rounded-full bg-card/80" />
-                    <div className="absolute left-[-8%] bottom-[20%] h-2.5 w-[72%] rotate-[16deg] rounded-full bg-card/80" />
-
-                    <div className="absolute left-5 top-5 flex items-center gap-2 rounded-full border border-white/80 bg-white/86 px-3 py-2 text-xs font-bold text-foreground shadow-sm backdrop-blur">
-                      <Navigation size={14} className="text-brand-primary" />
-                      {copy.heroPanelCoordinates}
-                    </div>
-
-                    {heroPins.map(({ key, top, left, icon: Icon, color }) => (
-                      <div
-                        key={key}
-                        className="absolute -translate-x-1/2 -translate-y-1/2"
-                        style={{ top, left }}
-                      >
-                        <div
-                          className={`mx-auto flex size-10 items-center justify-center rounded-2xl border-2 border-white text-white shadow-lg ${color}`}
-                        >
-                          <Icon size={17} />
-                        </div>
-                        <div className="mt-1 rounded-full border border-white/80 bg-white/90 px-2 py-0.5 text-[11px] font-bold text-foreground shadow-sm backdrop-blur">
-                          {t(`categories.${key}`)}
-                        </div>
-                      </div>
-                    ))}
-
-                    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-lg backdrop-blur">
+                  <div className="ring-ambient relative overflow-hidden rounded-[2rem] glass shadow-elegant">
+                    <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-brand-primary text-white">
-                          <Search size={17} />
+                        <div className="flex size-10 items-center justify-center rounded-xl bg-brand-gradient text-white shadow-glow-brand">
+                          <Compass size={20} />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-black text-foreground">
-                            {featuredCount > 0
-                              ? copy.heroPanelFeatured(
-                                  formatInteger(featuredCount),
-                                )
-                              : copy.heroPanelTotal(
-                                  formatInteger(activeBusinessCount),
-                                )}
+                        <div>
+                          <p className="text-base font-black text-foreground">
+                            {copy.heroPanelTitle}
                           </p>
                           <p className="text-xs font-medium text-foreground-muted">
-                            {copy.heroPanelMeta}
+                            {copy.heroPanelSubtitle}
                           </p>
                         </div>
-                        <Link
-                          href="/map"
-                          className="rounded-xl bg-foreground px-3 py-2 text-xs font-bold text-background transition-colors hover:bg-brand-primary"
+                      </div>
+                    </div>
+
+                    <div className="relative aspect-[4/3.6] overflow-hidden bg-background-secondary">
+                      <svg
+                        className="absolute inset-0 size-full opacity-70"
+                        viewBox="0 0 400 400"
+                        preserveAspectRatio="xMidYMid slice"
+                      >
+                        <defs>
+                          <radialGradient
+                            id="hero-map-land"
+                            cx="50%"
+                            cy="40%"
+                            r="80%"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor="hsl(var(--brand-secondary))"
+                              stopOpacity="0.18"
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor="hsl(var(--brand-secondary))"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                        </defs>
+                        <rect
+                          width="400"
+                          height="400"
+                          fill="url(#hero-map-land)"
+                        />
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <path
+                            key={i}
+                            d={`M0 ${60 + i * 38} Q 100 ${40 + i * 38} 200 ${
+                              70 + i * 38
+                            } T 400 ${50 + i * 38}`}
+                            fill="none"
+                            stroke="hsl(var(--foreground))"
+                            strokeOpacity="0.08"
+                            strokeWidth="1"
+                          />
+                        ))}
+                        <path
+                          d="M-20 240 Q 80 180 180 230 T 420 200"
+                          fill="none"
+                          stroke="hsl(var(--brand-primary))"
+                          strokeOpacity="0.35"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M40 380 L 200 200 L 360 320"
+                          fill="none"
+                          stroke="hsl(var(--foreground))"
+                          strokeOpacity="0.12"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 4"
+                        />
+                      </svg>
+
+                      <div className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-lg glass px-3 py-2 font-mono text-[11px] font-semibold text-foreground-muted">
+                        <Navigation size={14} />
+                        {copy.heroPanelCoordinates}
+                      </div>
+
+                      <div className="absolute right-5 top-5 overflow-hidden rounded-lg glass text-foreground-muted">
+                        <button
+                          className="flex size-10 items-center justify-center transition-colors hover:bg-brand-primary/5 hover:text-brand-primary"
+                          aria-label="Zoom in"
                         >
-                          {copy.heroPanelOpen}
-                        </Link>
+                          <Plus size={16} />
+                        </button>
+                        <div className="h-px bg-border" />
+                        <button
+                          className="flex size-10 items-center justify-center transition-colors hover:bg-brand-primary/5 hover:text-brand-primary"
+                          aria-label="Zoom out"
+                        >
+                          <Minus size={16} />
+                        </button>
+                      </div>
+
+                      {heroPins.map(
+                        ({ key, top, left, icon: Icon, tint, label }, i) => (
+                          <div
+                            key={key}
+                            className="group absolute -translate-x-1/2 -translate-y-1/2"
+                            style={{ top, left }}
+                          >
+                            <div
+                              style={{
+                                animation: `float ${5 + i}s ease-in-out infinite`,
+                                animationDelay: `${i * 0.4}s`,
+                              }}
+                            >
+                              <span
+                                className="absolute inset-0 m-auto size-10 animate-ping-slow rounded-full"
+                                style={{ background: tint, opacity: 0.35 }}
+                              />
+                              <div
+                                className="relative flex size-11 items-center justify-center rounded-full text-white shadow-lg ring-4 ring-background"
+                                style={{ background: tint }}
+                              >
+                                <Icon size={18} strokeWidth={2.5} />
+                              </div>
+                              <div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-md glass px-2 py-1 text-[11px] font-semibold opacity-0 shadow-soft transition-opacity group-hover:opacity-100">
+                                {label}
+                              </div>
+                            </div>
+                          </div>
+                        ),
+                      )}
+
+                      <div className="absolute inset-x-4 bottom-4 rounded-2xl glass p-3 shadow-elegant">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--gradient-accent)] text-white">
+                            <Sparkles size={19} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-black text-foreground">
+                              {copy.heroPanelFeatured(featuredCountLabel)}
+                            </p>
+                            <p className="text-xs font-medium text-foreground-muted">
+                              {copy.heroPanelMeta}
+                            </p>
+                          </div>
+                          <Link
+                            href="/map"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white transition-all hover:brightness-110"
+                          >
+                            {copy.heroPanelOpen}
+                            <ArrowRight size={13} />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

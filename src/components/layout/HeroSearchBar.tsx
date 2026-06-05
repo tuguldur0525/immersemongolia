@@ -45,7 +45,7 @@ export default function HeroSearchBar() {
       transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="w-full max-w-4xl"
     >
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/80 bg-white/92 p-2 shadow-xl shadow-slate-900/10 backdrop-blur-xl dark:border-border/80 dark:bg-card/92 sm:grid-cols-[minmax(150px,0.8fr)_minmax(170px,0.9fr)_minmax(220px,1.6fr)_auto]">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/80 bg-white/92 p-2 shadow-xl shadow-slate-900/10 backdrop-blur-xl dark:border-border/80 dark:bg-card/92 sm:grid-cols-[minmax(118px,0.75fr)_minmax(132px,0.8fr)_minmax(170px,1.35fr)_auto] lg:grid-cols-[minmax(128px,0.78fr)_minmax(142px,0.82fr)_minmax(180px,1.45fr)_auto]">
         {/* Category select */}
         <div className="relative rounded-xl border border-border/70 bg-background/80 transition-colors hover:border-brand-primary/45 hover:bg-card">
           <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none" />
@@ -92,7 +92,7 @@ export default function HeroSearchBar() {
         {/* Submit */}
         <button type="submit"
           aria-label="Хайх"
-          className="col-span-2 h-12 w-full rounded-xl bg-brand-primary px-6 text-sm font-bold text-white shadow-glow-brand transition-all hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 sm:col-span-1 sm:h-14 sm:w-auto">
+          className="col-span-2 h-12 w-full rounded-xl bg-brand-primary px-5 text-sm font-bold text-white shadow-glow-brand transition-all hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 sm:col-span-1 sm:h-14 sm:w-auto">
           <span className="flex items-center justify-center gap-2">
             <Search size={17} />
             Хайх

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -72,6 +73,10 @@ const TABS: Array<{ id: DashboardTab; label: string; icon: LucideIcon }> = [
   { id: 'recent', label: 'Сүүлд үзсэн', icon: Clock },
   { id: 'reviews', label: 'Санал хүсэлт', icon: Star },
 ]
+
+function isDashboardTab(value: string | null): value is DashboardTab {
+  return TABS.some((tab) => tab.id === value)
+}
 
 const REVIEW_STATUS = {
   PUBLISHED: { label: 'Нийтлэгдсэн', className: 'bg-brand-success/10 text-brand-success' },
@@ -155,8 +160,26 @@ function EmptyState({
   )
 }
 
-export default function UserDashboardPage() {
+function UserDashboardContent() {
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview')
+
+  useEffect(() => {
+    const nextTab = searchParams.get('tab')
+    if (isDashboardTab(nextTab)) setActiveTab(nextTab)
+  }, [searchParams])
+
+  function selectTab(tab: DashboardTab) {
+    setActiveTab(tab)
+
+    const url = new URL(window.location.href)
+    if (tab === 'overview') {
+      url.searchParams.delete('tab')
+    } else {
+      url.searchParams.set('tab', tab)
+    }
+    window.history.replaceState(null, '', `${url.pathname}${url.search}`)
+  }
 
   const { data, isLoading, error } = useQuery<UserDashboardData>({
     queryKey: ['user-dashboard'],
@@ -252,7 +275,7 @@ export default function UserDashboardPage() {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               className={cn(
                 'flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap',
                 activeTab === tab.id
@@ -278,7 +301,7 @@ export default function UserDashboardPage() {
                 <section className="rounded-2xl border border-border bg-card p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <h2 className="font-bold">Хадгалсан газрууд</h2>
-                    <button onClick={() => setActiveTab('saved')} className="text-xs font-medium text-brand-primary hover:underline">
+                    <button onClick={() => selectTab('saved')} className="text-xs font-medium text-brand-primary hover:underline">
                       Бүгдийг харах
                     </button>
                   </div>
@@ -393,5 +416,13 @@ export default function UserDashboardPage() {
         )}
       </div>
     </UserDashboardShell>
+  )
+}
+
+export default function UserDashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <UserDashboardContent />
+    </Suspense>
   )
 }

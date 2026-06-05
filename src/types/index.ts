@@ -160,9 +160,16 @@ export interface MapBusiness {
   slug: string
   nameMn: string
   nameEn: string | null
+  taglineMn?: string | null
+  taglineEn?: string | null
+  addressMn?: string | null
+  district?: string | null
+  city?: string | null
   latitude: number
   longitude: number
   categorySlug: string
+  categoryNameMn?: string | null
+  categoryIcon?: string | null
   categoryColor: string | null
   avgRating: number
   totalReviews: number

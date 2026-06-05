@@ -3,13 +3,14 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Star, MapPin, Heart, Zap, Building2 } from 'lucide-react'
 import { useState } from 'react'
 import { getCategoryImage } from '@/lib/category-assets'
 import { cn } from '@/lib/utils'
 import type { BusinessListItem } from '@/types'
-import { useBusinesses } from '@/hooks'
+import { useBusinesses, useToggleSaved } from '@/hooks'
 
 interface BusinessCardProps {
   business: BusinessListItem
@@ -28,6 +29,8 @@ export function BusinessCard({
   onSave,
   isSaved = false,
 }: BusinessCardProps) {
+  const router = useRouter()
+  const toggleSaved = useToggleSaved()
   const [saved, setSaved] = useState(isSaved)
   const [imageError, setImageError] = useState(false)
 
@@ -36,11 +39,23 @@ export function BusinessCard({
   const address = business.addressMn || business.district || business.city
   const categoryImage = getCategoryImage(business.category?.slug)
 
-  function handleSave(e: React.MouseEvent) {
+  async function handleSave(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    setSaved(v => !v)
-    onSave?.(business.id)
+    if (toggleSaved.isPending) return
+
+    const wasSaved = saved
+    setSaved(!wasSaved)
+
+    try {
+      await toggleSaved.mutateAsync({ businessId: business.id, isSaved: wasSaved })
+      onSave?.(business.id)
+    } catch (error) {
+      setSaved(wasSaved)
+      if (error instanceof Error && error.message === 'Unauthorized') {
+        router.push(`/auth/login?redirect=${encodeURIComponent(`/business/${business.slug}`)}`)
+      }
+    }
   }
 
   const priceColors: Record<string, string> = {
@@ -188,6 +203,7 @@ export function BusinessCard({
             <button
               type="button"
               onClick={handleSave}
+              disabled={toggleSaved.isPending}
               aria-pressed={saved}
               aria-label={`${saved ? 'Хадгалсан' : 'Хадгалах'} ${name}`}
               className={cn(

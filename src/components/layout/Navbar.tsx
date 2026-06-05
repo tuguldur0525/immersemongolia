@@ -27,6 +27,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [themeMounted, setThemeMounted] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [dbUser, setDbUser] = useState<AppUser | null>(null)
   const { theme, setTheme } = useTheme()
@@ -34,6 +35,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   const pathname = usePathname()
   const supabase = useMemo(() => createClient(), [])
   const { locale, setLocale, t } = useLanguage()
+  const isDarkTheme = themeMounted && theme === 'dark'
 
   const navLinks = useMemo(() => [
     { label: t('common.home'), href: '/', icon: Home },
@@ -47,6 +49,10 @@ export default function Navbar({ transparent = false }: NavbarProps) {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    setThemeMounted(true)
   }, [])
 
   useEffect(() => {
@@ -189,10 +195,10 @@ export default function Navbar({ transparent = false }: NavbarProps) {
 
             {/* Dark mode */}
             <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
               className="size-9 rounded-xl flex items-center justify-center text-foreground-secondary hover:text-foreground hover:bg-background-secondary transition-colors"
             >
-              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+              {isDarkTheme ? <Sun size={17} /> : <Moon size={17} />}
             </button>
 
             {/* Auth */}
@@ -318,11 +324,11 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                   {locale === 'mn' ? 'MN' : 'EN'}
                 </button>
                 <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
                   className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium hover:bg-background-secondary transition-colors"
                 >
-                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                  {theme === 'dark' ? 'Light' : 'Dark'}
+                  {isDarkTheme ? <Sun size={16} /> : <Moon size={16} />}
+                  {isDarkTheme ? 'Light' : 'Dark'}
                 </button>
               </div>
               {user && dbUser ? (
