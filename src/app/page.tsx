@@ -112,9 +112,9 @@ const heroPins = [
 ] as const;
 
 const heroStats = [
-  { key: "businesses", label: "Businesses", value: "12,480", icon: Building2 },
-  { key: "reviews", label: "Reviews", value: "84,320", icon: Star },
-  { key: "users", label: "Users", value: "126,540", icon: Users },
+  { key: "businesses", label: "Businesses", value: "0", icon: Building2 },
+  { key: "reviews", label: "Reviews", value: "0", icon: Star },
+  { key: "users", label: "Users", value: "0", icon: Users },
 ] as const;
 
 const HOME_COPY = {
