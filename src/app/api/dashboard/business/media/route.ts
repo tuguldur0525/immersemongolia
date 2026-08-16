@@ -138,7 +138,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        businesses: businesses.map(({ media, ...business }) => business),
+        businesses: businesses.map(({ media: _media, ...business }) => {
+          void _media
+          return business
+        }),
         selectedBusiness,
         media: selectedBusiness?.media ?? [],
         limits: {

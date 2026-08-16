@@ -335,13 +335,14 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-      ownerEmail,
+      ownerEmail: _ownerEmail,
       status,
       isVerified,
       isFeatured,
       isPremium,
       ...businessData
     } = data
+    void _ownerEmail
 
     const business = await prisma.business.create({
       data: {

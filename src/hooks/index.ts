@@ -1,15 +1,15 @@
 // src/hooks/index.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { User, SearchFilters, Review, ReviewFormData, PlatformStats } from '@/types'
+import type { User, SearchFilters, ReviewFormData, PlatformStats } from '@/types'
 import type { SubscriptionPlanConfig } from '@/types'
 
 // ── Auth hook ──────────────────────────────────────────────────────────────
 export function useCurrentUser() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user: sbUser } }) => {
@@ -30,7 +30,7 @@ export function useCurrentUser() {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase])
 
   return { user, isLoading }
 }

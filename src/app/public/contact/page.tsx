@@ -25,7 +25,8 @@ export default function ContactPage() {
   const [sent, setSent] = useState(false)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ContactForm>({ resolver: zodResolver(schema) })
 
-  async function onSubmit(data: ContactForm) {
+  async function onSubmit(_data: ContactForm) {
+    void _data
     await new Promise(r => setTimeout(r, 1200))
     setSent(true)
   }

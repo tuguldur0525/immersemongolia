@@ -28,7 +28,7 @@ function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
-  const requestedRedirect = searchParams.get('redirectTo') || '/'
+  const requestedRedirect = searchParams.get('redirectTo') || searchParams.get('redirect') || '/'
   const redirectTo = requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//')
     ? requestedRedirect
     : '/'

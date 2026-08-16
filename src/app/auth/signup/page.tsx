@@ -3,7 +3,6 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -48,7 +47,6 @@ export default function SignupPage() {
   const [serverError, setServerError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const { data: platformStats } = usePlatformStats()
   const platformStatItems = [
